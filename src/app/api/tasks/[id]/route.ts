@@ -6,8 +6,9 @@ import { z } from "zod";
 const updateTaskSchema = z.object({
   description: z.string().min(1).optional(),
   completed: z.boolean().optional(),
+  completedAt: z.string().nullable().optional(),
   priority: z.number().optional(),
-  reminderDate: z.string().nullable().optional(),
+  fileUrl: z.string().nullable().optional(),
 });
 
 export async function PUT(
@@ -21,12 +22,11 @@ export async function PUT(
 
   const { id } = await params;
 
-  const task = await prisma.task.findFirst({
+  const task = await prisma.checklistItem.findUnique({
     where: { id },
-    include: { checklist: true },
   });
 
-  if (!task || task.checklist.userId !== session.user.id) {
+  if (!task) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -41,17 +41,18 @@ export async function PUT(
       );
     }
 
-    const { description, completed, priority, reminderDate } = parsed.data;
+    const { description, completed, completedAt, priority, fileUrl } = parsed.data;
 
-    const updated = await prisma.task.update({
+    const updated = await prisma.checklistItem.update({
       where: { id },
       data: {
-        ...(description !== undefined && { description }),
+        ...(description !== undefined && { text: description }),
         ...(completed !== undefined && { completed }),
-        ...(priority !== undefined && { priority }),
-        ...(reminderDate !== undefined && {
-          reminderDate: reminderDate ? new Date(reminderDate) : null,
+        ...(completedAt !== undefined && {
+          completedAt: completedAt ? new Date(completedAt) : null,
         }),
+        ...(priority !== undefined && { priority }),
+        ...(fileUrl !== undefined && { fileUrl }),
       },
     });
 
@@ -76,17 +77,15 @@ export async function DELETE(
 
   const { id } = await params;
 
-  const task = await prisma.task.findFirst({
+  const task = await prisma.checklistItem.findUnique({
     where: { id },
-    include: { checklist: true },
   });
 
-  if (!task || task.checklist.userId !== session.user.id) {
+  if (!task) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  await prisma.task.delete({ where: { id } });
+  await prisma.checklistItem.delete({ where: { id } });
 
   return NextResponse.json({ success: true });
 }
-

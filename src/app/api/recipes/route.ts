@@ -10,6 +10,7 @@ const createRecipeSchema = z.object({
   prepTime: z.number().optional(),
   servings: z.number().optional(),
   imageUrl: z.string().optional(),
+  folderId: z.string().optional().nullable(),
   ingredients: z.array(z.object({
     name: z.string().min(1),
     quantity: z.string().min(1),
@@ -27,14 +28,24 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const search = searchParams.get("search");
   const tag = searchParams.get("tag");
+  const folderId = searchParams.get("folderId");
+
+  const userId = session.user.id === "admin" ? undefined : session.user.id;
 
   const where: {
-    userId: string;
+    userId?: string;
+    folderId?: string | null;
     title?: { contains: string; mode: "insensitive" };
     tags?: { some: { tag: { name: string } } };
-  } = {
-    userId: session.user.id,
-  };
+  } = {};
+
+  if (userId) {
+    where.userId = userId;
+  }
+
+  if (folderId) {
+    where.folderId = folderId;
+  }
 
   if (search) {
     where.title = { contains: search, mode: "insensitive" };
@@ -49,6 +60,7 @@ export async function GET(req: Request) {
     include: {
       ingredients: { include: { ingredient: true } },
       tags: { include: { tag: true } },
+      steps: { orderBy: { order: "asc" } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -73,16 +85,35 @@ export async function POST(req: Request) {
       );
     }
 
-    const { title, description, prepTime, servings, imageUrl, ingredients, tags } = parsed.data;
+    const { title, description, prepTime, servings, imageUrl, folderId, ingredients, tags } = parsed.data;
+
+    let userId = session.user.id;
+
+    if (userId === "admin") {
+      const adminUser = await prisma.user.findFirst();
+      if (!adminUser) {
+        const newUser = await prisma.user.create({
+          data: {
+            email: "admin@michaelgarisek.com",
+            password: "admin",
+            name: "Admin",
+          },
+        });
+        userId = newUser.id;
+      } else {
+        userId = adminUser.id;
+      }
+    }
 
     const recipe = await prisma.recipe.create({
       data: {
-        userId: session.user.id,
+        userId,
         title,
         description,
         prepTime,
         servings,
         imageUrl,
+        folderId: folderId || null,
         ingredients: ingredients ? {
           create: await Promise.all(
             ingredients.map(async (ing) => {
@@ -114,6 +145,7 @@ export async function POST(req: Request) {
       include: {
         ingredients: { include: { ingredient: true } },
         tags: { include: { tag: true } },
+        steps: true,
       },
     });
 
@@ -132,4 +164,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

@@ -5,7 +5,6 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Lock, User, LogIn } from "lucide-react";
-import { Button, Input, Card } from "@/components/ui";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -13,12 +12,12 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    setSubmitting(true);
 
     try {
       const result = await signIn("credentials", {
@@ -29,14 +28,14 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError("Invalid username or password");
+        setSubmitting(false);
       } else {
         router.push("/dashboard");
         router.refresh();
       }
     } catch {
       setError("Something went wrong");
-    } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -58,10 +57,10 @@ export default function LoginPage() {
             <LogIn className="w-8 h-8 text-white" />
           </motion.div>
           <h1 className="text-3xl font-bold text-stone-900">Admin Login</h1>
-          <p className="text-stone-500 mt-2">Sign in to access the dashboard</p>
+          <p className="text-[#006400] mt-2">Sign in to access the dashboard</p>
         </div>
 
-        <Card hover={false} className="p-6">
+        <div className="bg-white border border-stone-200 rounded-xl shadow-sm p-6">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <motion.div
@@ -73,48 +72,63 @@ export default function LoginPage() {
               </motion.div>
             )}
 
-            <div className="relative">
-              <User className="absolute left-3 top-[38px] w-5 h-5 text-stone-400" />
-              <Input
-                label="Username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                className="pl-10"
-                required
-              />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-stone-700">
+                Username
+              </label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter username"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#006400]/50 focus:border-[#006400]"
+                  required
+                />
+              </div>
             </div>
 
-            <div className="relative">
-              <Lock className="absolute left-3 top-[38px] w-5 h-5 text-stone-400" />
-              <Input
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                className="pl-10"
-                required
-              />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-stone-700">
+                Password
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#006400]/50 focus:border-[#006400]"
+                  required
+                />
+              </div>
             </div>
 
-            <Button type="submit" loading={loading} className="w-full">
-              Sign In
-            </Button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-2.5 bg-[#006400] hover:bg-[#228B22] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                "Sign In"
+              )}
+            </button>
           </form>
 
           <div className="mt-6 pt-6 border-t border-stone-200 text-center">
             <Link
               href="/"
-              className="text-[#006400] hover:text-[#228B22] font-medium text-sm"
+              className="text-[#006400] hover:underline font-medium text-sm"
             >
               Back to Portfolio
             </Link>
           </div>
-        </Card>
+        </div>
       </motion.div>
     </div>
   );
 }
-

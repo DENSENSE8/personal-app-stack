@@ -16,40 +16,99 @@ model User {
   updatedAt     DateTime    @updatedAt
   checklists    Checklist[]
   recipes       Recipe[]
+  folders       Folder[]
+  reminders     Reminder[]
+}
+
+model Folder {
+  id         String      @id @default(cuid())
+  name       String
+  type       String      // 'recipe' | 'checklist' | 'reminder'
+  parentId   String?
+  parent     Folder?     @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children   Folder[]    @relation("FolderHierarchy")
+  userId     String
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipes    Recipe[]
+  checklists Checklist[]
+  reminders  Reminder[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([parentId])
+  @@index([type])
 }
 
 model Checklist {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId  String?
+  folder    Folder?         @relation(fields: [folderId], references: [id], onDelete: SetNull)
   title     String
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  tasks     Task[]
+  date      DateTime        @default(now())
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  tasks     ChecklistItem[]
 
   @@index([userId])
+  @@index([folderId])
   @@index([date])
 }
 
-model Task {
-  id           String     @id @default(cuid())
-  checklistId  String
-  checklist    Checklist  @relation(fields: [checklistId], references: [id], onDelete: Cascade)
-  description  String
-  completed    Boolean    @default(false)
-  priority     Int        @default(0)
-  reminderDate DateTime?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+model ChecklistItem {
+  id          String     @id @default(cuid())
+  checklistId String
+  checklist   Checklist  @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  text        String
+  completed   Boolean    @default(false)
+  completedAt DateTime?
+  priority    Int        @default(0)
+  fileUrl     String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
   @@index([checklistId])
+}
+
+model Reminder {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId  String?
+  folder    Folder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  title     String
+  dueDate   DateTime?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  items     ReminderItem[]
+
+  @@index([userId])
+  @@index([folderId])
+}
+
+model ReminderItem {
+  id          String    @id @default(cuid())
+  reminderId  String
+  reminder    Reminder  @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  text        String
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  priority    Int       @default(0)
+  fileUrl     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([reminderId])
 }
 
 model Recipe {
   id          String             @id @default(cuid())
   userId      String
   user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folderId    String?
+  folder      Folder?            @relation(fields: [folderId], references: [id], onDelete: SetNull)
   title       String
   description String?
   prepTime    Int?
@@ -59,8 +118,21 @@ model Recipe {
   updatedAt   DateTime           @updatedAt
   ingredients RecipeIngredient[]
   tags        TagsOnRecipes[]
+  steps       RecipeStep[]
 
   @@index([userId])
+  @@index([folderId])
+}
+
+model RecipeStep {
+  id        String  @id @default(cuid())
+  recipeId  String
+  recipe    Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  text      String
+  completed Boolean @default(false)
+  order     Int     @default(0)
+
+  @@index([recipeId])
 }
 
 model Ingredient {
@@ -95,4 +167,3 @@ model TagsOnRecipes {
 
   @@id([recipeId, tagId])
 }
-

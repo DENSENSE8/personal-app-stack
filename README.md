@@ -1,24 +1,39 @@
 # Michael Garisek Portfolio
 
-A personal portfolio website with an integrated admin dashboard for managing checklists and recipes.
+A personal portfolio website with an integrated admin dashboard for managing checklists, recipes, and reminders.
 
 ## Features
 
-- **Public Portfolio**: Clean, minimal homepage with portfolio sections
-- **Admin Dashboard**: Protected dashboard for managing personal data
-- **Checklists**: Create, edit, and manage daily task lists with drag-and-drop reordering
-- **Recipes**: Store and organize recipes with ingredients, tags, and images
-- **Authentication**: Secure admin login with JWT-based sessions
+- **Public Portfolio**: Clean, minimal white homepage with portfolio sections
+- **Admin Dashboard**: Protected dashboard with floating navigation
+- **Folder Organization**: Hierarchical folder structure for all items
+- **Checklists**: Create, edit, and manage task lists with completion tracking
+- **Recipes**: Store and organize recipes with prep steps and ingredients
+- **Reminders**: Keep track of important items with due dates
+- **File Uploads**: Attach videos to checklist/reminder items
+- **Smooth Scrolling**: Lenis smooth scroll throughout the site
 
 ## Tech Stack
 
 - **Framework**: Next.js 16
 - **Database**: Neon PostgreSQL with Prisma ORM
 - **Cache**: Upstash Redis for autocomplete
-- **Storage**: Vercel Blob for image uploads
+- **Storage**: Vercel Blob for file uploads
 - **Auth**: NextAuth.js v5
 - **Styling**: Tailwind CSS v4
 - **Animations**: Framer Motion
+- **Smooth Scroll**: Lenis
+
+## Page Structure
+
+```
+/                          # Public portfolio homepage
+/login                     # Admin login page
+/dashboard                 # Protected dashboard home
+/dashboard/recipes         # Recipe management with folders
+/dashboard/checklists      # Checklist management with folders
+/dashboard/reminders       # Reminder management with folders
+```
 
 ## Getting Started
 
@@ -57,22 +72,45 @@ A personal portfolio website with an integrated admin dashboard for managing che
 ```
 src/
 ├── app/
-│   ├── page.tsx           # Public portfolio home
-│   ├── login/             # Admin login
-│   ├── dashboard/         # Protected admin dashboard
-│   ├── checklists/        # Checklist management
-│   ├── recipes/           # Recipe management
-│   └── api/               # API routes
+│   ├── page.tsx                    # Public portfolio home
+│   ├── login/page.tsx              # Admin login
+│   ├── dashboard/
+│   │   ├── layout.tsx              # Dashboard layout with FAB
+│   │   ├── page.tsx                # Dashboard home
+│   │   ├── recipes/page.tsx        # Recipe management
+│   │   ├── checklists/page.tsx     # Checklist management
+│   │   └── reminders/page.tsx      # Reminder management
+│   └── api/
+│       ├── folders/                # Folder CRUD
+│       ├── checklists/             # Checklist CRUD
+│       ├── recipes/                # Recipe CRUD
+│       ├── reminders/              # Reminder CRUD
+│       └── upload/                 # File upload
 ├── components/
-│   ├── ui/                # Reusable UI components
-│   ├── features/          # Feature-specific components
-│   └── layout/            # Layout components
+│   ├── dashboard/
+│   │   ├── FloatingMenu.tsx        # Bottom FAB navigation
+│   │   └── FolderSidebar.tsx       # Folder tree sidebar
+│   ├── ui/                         # Reusable UI components
+│   └── layout/
+│       ├── Providers.tsx           # Session + Lenis providers
+│       └── SmoothScroll.tsx        # Lenis smooth scroll
 ├── lib/
-│   ├── auth.ts            # NextAuth configuration
-│   ├── db.ts              # Prisma client
-│   └── redis.ts           # Redis utilities
-└── middleware.ts          # Route protection
+│   ├── auth.ts                     # NextAuth configuration
+│   ├── db.ts                       # Prisma client
+│   └── redis.ts                    # Redis utilities
+└── middleware.ts                   # Route protection
 ```
+
+## Database Schema
+
+- **User**: Account with email/password
+- **Folder**: Hierarchical organization (recipe/checklist/reminder types)
+- **Checklist**: Task lists with items
+- **ChecklistItem**: Individual tasks with completion tracking
+- **Reminder**: Reminder lists with items and due dates
+- **ReminderItem**: Individual reminders with completion tracking
+- **Recipe**: Recipes with ingredients, tags, and prep steps
+- **RecipeStep**: Prep checklist for recipes
 
 ## License
 

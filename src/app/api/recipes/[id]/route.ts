@@ -10,6 +10,7 @@ const updateRecipeSchema = z.object({
   prepTime: z.number().optional(),
   servings: z.number().optional(),
   imageUrl: z.string().optional(),
+  folderId: z.string().optional().nullable(),
   ingredients: z.array(z.object({
     name: z.string().min(1),
     quantity: z.string().min(1),
@@ -29,11 +30,12 @@ export async function GET(
 
   const { id } = await params;
 
-  const recipe = await prisma.recipe.findFirst({
-    where: { id, userId: session.user.id },
+  const recipe = await prisma.recipe.findUnique({
+    where: { id },
     include: {
       ingredients: { include: { ingredient: true } },
       tags: { include: { tag: true } },
+      steps: { orderBy: { order: "asc" } },
     },
   });
 
@@ -55,8 +57,8 @@ export async function PUT(
 
   const { id } = await params;
 
-  const existing = await prisma.recipe.findFirst({
-    where: { id, userId: session.user.id },
+  const existing = await prisma.recipe.findUnique({
+    where: { id },
   });
 
   if (!existing) {
@@ -74,7 +76,7 @@ export async function PUT(
       );
     }
 
-    const { title, description, prepTime, servings, imageUrl, ingredients, tags } = parsed.data;
+    const { title, description, prepTime, servings, imageUrl, folderId, ingredients, tags } = parsed.data;
 
     if (ingredients) {
       await prisma.recipeIngredient.deleteMany({ where: { recipeId: id } });
@@ -92,6 +94,7 @@ export async function PUT(
         ...(prepTime !== undefined && { prepTime }),
         ...(servings !== undefined && { servings }),
         ...(imageUrl !== undefined && { imageUrl }),
+        ...(folderId !== undefined && { folderId }),
         ingredients: ingredients ? {
           create: await Promise.all(
             ingredients.map(async (ing) => {
@@ -123,6 +126,7 @@ export async function PUT(
       include: {
         ingredients: { include: { ingredient: true } },
         tags: { include: { tag: true } },
+        steps: { orderBy: { order: "asc" } },
       },
     });
 
@@ -155,8 +159,8 @@ export async function DELETE(
 
   const { id } = await params;
 
-  const existing = await prisma.recipe.findFirst({
-    where: { id, userId: session.user.id },
+  const existing = await prisma.recipe.findUnique({
+    where: { id },
   });
 
   if (!existing) {
@@ -167,4 +171,3 @@ export async function DELETE(
 
   return NextResponse.json({ success: true });
 }
-

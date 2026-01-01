@@ -6,7 +6,6 @@ import { z } from "zod";
 const createTaskSchema = z.object({
   description: z.string().min(1),
   priority: z.number().optional(),
-  reminderDate: z.string().optional(),
 });
 
 export async function POST(
@@ -20,8 +19,8 @@ export async function POST(
 
   const { id } = await params;
 
-  const checklist = await prisma.checklist.findFirst({
-    where: { id, userId: session.user.id },
+  const checklist = await prisma.checklist.findUnique({
+    where: { id },
   });
 
   if (!checklist) {
@@ -39,14 +38,17 @@ export async function POST(
       );
     }
 
-    const { description, priority, reminderDate } = parsed.data;
+    const { description, priority } = parsed.data;
 
-    const task = await prisma.task.create({
+    const existingCount = await prisma.checklistItem.count({
+      where: { checklistId: id },
+    });
+
+    const task = await prisma.checklistItem.create({
       data: {
         checklistId: id,
-        description,
-        priority: priority ?? 0,
-        reminderDate: reminderDate ? new Date(reminderDate) : null,
+        text: description,
+        priority: priority ?? existingCount,
       },
     });
 
@@ -59,4 +61,3 @@ export async function POST(
     );
   }
 }
-
