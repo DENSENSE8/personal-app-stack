@@ -9,7 +9,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
 interface Task {
-  id: string;
+  id?: string;
   description: string;
   completed: boolean;
   priority: number;
