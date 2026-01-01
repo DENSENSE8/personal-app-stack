@@ -231,7 +231,7 @@ export default function ChecklistsPage() {
                           className="flex items-center gap-3 p-2 rounded-lg hover:bg-stone-800/50 transition-colors"
                         >
                           <button
-                            onClick={() => handleTaskToggle(task.id, !task.completed)}
+                            onClick={() => task.id && handleTaskToggle(task.id, !task.completed)}
                             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                               task.completed
                                 ? "bg-amber-500 border-amber-500"
@@ -252,7 +252,7 @@ export default function ChecklistsPage() {
                             {task.description}
                           </span>
                           <button
-                            onClick={() => handleTaskDelete(task.id)}
+                            onClick={() => task.id && handleTaskDelete(task.id)}
                             className="p-1 rounded hover:bg-rose-500/10 text-stone-600 hover:text-rose-400 transition-colors"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
