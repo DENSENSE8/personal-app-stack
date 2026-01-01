@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String      @id @default(cuid())
+  email         String      @unique
+  password      String
+  name          String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  checklists    Checklist[]
+  recipes       Recipe[]
+}
+
+model Checklist {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]
+
+  @@index([userId])
+  @@index([date])
+}
+
+model Task {
+  id           String     @id @default(cuid())
+  checklistId  String
+  checklist    Checklist  @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  description  String
+  completed    Boolean    @default(false)
+  priority     Int        @default(0)
+  reminderDate DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([checklistId])
+}
+
+model Recipe {
+  id          String             @id @default(cuid())
+  userId      String
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  prepTime    Int?
+  servings    Int?
+  imageUrl    String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  ingredients RecipeIngredient[]
+  tags        TagsOnRecipes[]
+
+  @@index([userId])
+}
+
+model Ingredient {
+  id      String             @id @default(cuid())
+  name    String             @unique
+  unit    String?
+  recipes RecipeIngredient[]
+}
+
+model RecipeIngredient {
+  id           String     @id @default(cuid())
+  recipeId     String
+  recipe       Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  quantity     String
+
+  @@unique([recipeId, ingredientId])
+}
+
+model Tag {
+  id      String          @id @default(cuid())
+  name    String          @unique
+  recipes TagsOnRecipes[]
+}
+
+model TagsOnRecipes {
+  recipeId String
+  recipe   Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  tagId    String
+  tag      Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([recipeId, tagId])
+}
+
