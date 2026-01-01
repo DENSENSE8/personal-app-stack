@@ -64,7 +64,7 @@ export default function RecipesPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/auth/signin");
+      router.push("/login");
     } else if (status === "authenticated") {
       fetchRecipes();
     }
@@ -136,8 +136,8 @@ export default function RecipesPage() {
     <div className="max-w-7xl mx-auto px-4 py-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-stone-100">Recipes</h1>
-          <p className="text-stone-400 mt-1">Your personal recipe collection</p>
+          <h1 className="text-3xl font-bold text-stone-900">Recipes</h1>
+          <p className="text-stone-500 mt-1">Your personal recipe collection</p>
         </div>
         <Button onClick={() => setModalOpen(true)}>
           <Plus className="w-4 h-4" />
@@ -155,15 +155,15 @@ export default function RecipesPage() {
 
         {allTags.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <Filter className="w-4 h-4 text-stone-500" />
+            <Filter className="w-4 h-4 text-stone-400" />
             {allTags.slice(0, 5).map((tag) => (
               <button
                 key={tag}
                 onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${
                   selectedTag === tag
-                    ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
-                    : "bg-stone-800 border-stone-700 text-stone-400 hover:border-stone-600"
+                    ? "bg-[#006400]/10 border-[#006400]/30 text-[#006400]"
+                    : "bg-stone-100 border-stone-200 text-stone-500 hover:border-stone-300"
                 }`}
               >
                 {tag}
@@ -172,7 +172,7 @@ export default function RecipesPage() {
             {selectedTag && (
               <button
                 onClick={() => setSelectedTag(null)}
-                className="p-1.5 rounded-full hover:bg-stone-800 text-stone-500"
+                className="p-1.5 rounded-full hover:bg-stone-100 text-stone-400"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -188,9 +188,9 @@ export default function RecipesPage() {
             animate={{ opacity: 1 }}
             className="text-center py-16"
           >
-            <ChefHat className="w-16 h-16 text-stone-700 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-stone-400">No recipes found</h3>
-            <p className="text-stone-500 mt-1">
+            <ChefHat className="w-16 h-16 text-stone-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-stone-500">No recipes found</h3>
+            <p className="text-stone-400 mt-1">
               {searchQuery || selectedTag ? "Try a different search" : "Add your first recipe to get started"}
             </p>
           </motion.div>
@@ -268,31 +268,31 @@ export default function RecipesPage() {
             )}
 
             {viewingRecipe.description && (
-              <p className="text-stone-300">{viewingRecipe.description}</p>
+              <p className="text-stone-600">{viewingRecipe.description}</p>
             )}
 
-            <div className="flex gap-6 text-sm text-stone-400">
+            <div className="flex gap-6 text-sm text-stone-500">
               {viewingRecipe.prepTime && (
                 <div>
-                  <span className="text-stone-500">Prep time:</span>{" "}
-                  <span className="text-stone-200">{viewingRecipe.prepTime} min</span>
+                  <span className="text-stone-400">Prep time:</span>{" "}
+                  <span className="text-stone-700">{viewingRecipe.prepTime} min</span>
                 </div>
               )}
               {viewingRecipe.servings && (
                 <div>
-                  <span className="text-stone-500">Servings:</span>{" "}
-                  <span className="text-stone-200">{viewingRecipe.servings}</span>
+                  <span className="text-stone-400">Servings:</span>{" "}
+                  <span className="text-stone-700">{viewingRecipe.servings}</span>
                 </div>
               )}
             </div>
 
             {viewingRecipe.ingredients.length > 0 && (
               <div>
-                <h4 className="text-sm font-medium text-stone-400 mb-3">Ingredients</h4>
+                <h4 className="text-sm font-medium text-stone-500 mb-3">Ingredients</h4>
                 <ul className="space-y-2">
                   {viewingRecipe.ingredients.map((ing, i) => (
-                    <li key={i} className="flex items-center gap-2 text-stone-200">
-                      <span className="w-2 h-2 bg-amber-500 rounded-full" />
+                    <li key={i} className="flex items-center gap-2 text-stone-700">
+                      <span className="w-2 h-2 bg-[#006400] rounded-full" />
                       {ing.quantity} {ing.ingredient.name}
                     </li>
                   ))}
@@ -303,12 +303,12 @@ export default function RecipesPage() {
             {viewingRecipe.tags.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {viewingRecipe.tags.map((t) => (
-                  <Badge key={t.tag.name}>{t.tag.name}</Badge>
+                  <Badge key={t.tag.name} variant="success">{t.tag.name}</Badge>
                 ))}
               </div>
             )}
 
-            <div className="flex gap-3 pt-4 border-t border-stone-800">
+            <div className="flex gap-3 pt-4 border-t border-stone-200">
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -332,4 +332,3 @@ export default function RecipesPage() {
     </div>
   );
 }
-

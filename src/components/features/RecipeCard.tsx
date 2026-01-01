@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Clock, Users, ChefHat } from "lucide-react";
 import { Card, Badge } from "@/components/ui";
 import Image from "next/image";
@@ -30,7 +29,7 @@ export function RecipeCard({
       onClick={onClick}
       className="overflow-hidden cursor-pointer group"
     >
-      <div className="relative h-48 bg-stone-800">
+      <div className="relative h-48 bg-stone-100">
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -40,20 +39,20 @@ export function RecipeCard({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <ChefHat className="w-16 h-16 text-stone-700" />
+            <ChefHat className="w-16 h-16 text-stone-300" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-stone-900/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-white/80 to-transparent" />
       </div>
 
       <div className="p-4 space-y-3">
-        <h3 className="text-lg font-semibold text-stone-100 line-clamp-1">{title}</h3>
+        <h3 className="text-lg font-semibold text-stone-900 line-clamp-1">{title}</h3>
 
         {description && (
-          <p className="text-sm text-stone-400 line-clamp-2">{description}</p>
+          <p className="text-sm text-stone-500 line-clamp-2">{description}</p>
         )}
 
-        <div className="flex items-center gap-4 text-sm text-stone-500">
+        <div className="flex items-center gap-4 text-sm text-stone-400">
           {prepTime && (
             <div className="flex items-center gap-1.5">
               <Clock className="w-4 h-4" />
@@ -71,7 +70,7 @@ export function RecipeCard({
         {tags && tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             {tags.slice(0, 3).map((t) => (
-              <Badge key={t.tag.name} variant="default">
+              <Badge key={t.tag.name} variant="success">
                 {t.tag.name}
               </Badge>
             ))}
@@ -84,4 +83,3 @@ export function RecipeCard({
     </Card>
   );
 }
-

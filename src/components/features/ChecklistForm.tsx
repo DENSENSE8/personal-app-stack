@@ -107,23 +107,23 @@ export function ChecklistForm({
 
       {tasks.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm text-stone-400">
+          <div className="flex items-center justify-between text-sm text-stone-500">
             <span>Progress</span>
             <span>{completedCount} / {tasks.length} completed</span>
           </div>
-          <div className="h-2 bg-stone-800 rounded-full overflow-hidden">
+          <div className="h-2 bg-stone-200 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
               transition={{ duration: 0.3, ease: "easeOut" }}
-              className="h-full bg-gradient-to-r from-amber-500 to-amber-400"
+              className="h-full bg-[#006400]"
             />
           </div>
         </div>
       )}
 
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-stone-300">Tasks</label>
+        <label className="block text-sm font-medium text-stone-700">Tasks</label>
 
         <AnimatePresence mode="popLayout">
           {tasks.map((task, index) => (
@@ -135,25 +135,25 @@ export function ChecklistForm({
               layout
             >
               <Card hover={false} className="p-3 flex items-center gap-3">
-                <GripVertical className="w-4 h-4 text-stone-600 cursor-grab" />
+                <GripVertical className="w-4 h-4 text-stone-300 cursor-grab" />
                 <Checkbox
                   checked={task.completed}
                   onChange={() => toggleTask(index)}
                 />
                 <span
                   className={`flex-1 text-sm ${
-                    task.completed ? "text-stone-500 line-through" : "text-stone-200"
+                    task.completed ? "text-stone-400 line-through" : "text-stone-700"
                   }`}
                 >
                   {task.description}
                 </span>
                 {task.reminderDate && (
-                  <Bell className="w-4 h-4 text-amber-500" />
+                  <Bell className="w-4 h-4 text-[#006400]" />
                 )}
                 <button
                   type="button"
                   onClick={() => deleteTask(index)}
-                  className="p-1.5 rounded-lg hover:bg-rose-500/10 text-stone-500 hover:text-rose-400 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-rose-50 text-stone-400 hover:text-rose-500 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -183,4 +183,3 @@ export function ChecklistForm({
     </form>
   );
 }
-

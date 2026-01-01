@@ -3,14 +3,13 @@
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, CheckSquare, ChefHat, User, LogOut, Home } from "lucide-react";
+import { Menu, X, LayoutDashboard, User, LogOut, Home } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const navLinks = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/checklists", label: "Checklists", icon: CheckSquare },
-  { href: "/recipes", label: "Recipes", icon: ChefHat },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, protected: true },
 ];
 
 export function Navbar() {
@@ -23,19 +22,20 @@ export function Navbar() {
     return pathname.startsWith(href);
   };
 
+  const visibleLinks = navLinks.filter(
+    (link) => !link.protected || session
+  );
+
   return (
-    <nav className="sticky top-0 z-40 bg-stone-950/80 backdrop-blur-xl border-b border-stone-800/50">
+    <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center">
-              <CheckSquare className="w-5 h-5 text-stone-950" />
-            </div>
-            <span className="font-bold text-lg text-stone-100">AppStack</span>
+            <span className="font-bold text-lg text-stone-900">Michael Garisek</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => {
+            {visibleLinks.map((link) => {
               const Icon = link.icon;
               return (
                 <Link
@@ -44,8 +44,8 @@ export function Navbar() {
                   className={`
                     relative px-4 py-2 rounded-lg text-sm font-medium transition-colors
                     ${isActive(link.href)
-                      ? "text-amber-400"
-                      : "text-stone-400 hover:text-stone-200 hover:bg-stone-800/50"
+                      ? "text-[#006400]"
+                      : "text-stone-500 hover:text-stone-700 hover:bg-stone-100"
                     }
                   `}
                 >
@@ -56,7 +56,7 @@ export function Navbar() {
                   {isActive(link.href) && (
                     <motion.div
                       layoutId="activeNav"
-                      className="absolute inset-0 bg-amber-500/10 border border-amber-500/20 rounded-lg -z-10"
+                      className="absolute inset-0 bg-[#006400]/10 border border-[#006400]/20 rounded-lg -z-10"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   )}
@@ -67,30 +67,27 @@ export function Navbar() {
 
           <div className="hidden md:flex items-center gap-3">
             {session ? (
-              <>
-                <span className="text-sm text-stone-400">{session.user?.email}</span>
-                <button
-                  onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-                  className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-stone-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign out
-                </button>
-              </>
+              <button
+                onClick={() => signOut({ callbackUrl: "/login" })}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-stone-500 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign out
+              </button>
             ) : (
               <Link
-                href="/auth/signin"
-                className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-stone-950 text-sm font-medium rounded-lg transition-colors"
+                href="/login"
+                className="flex items-center gap-2 px-4 py-2 bg-[#006400] hover:bg-[#228B22] text-white text-sm font-medium rounded-lg transition-colors"
               >
                 <User className="w-4 h-4" />
-                Sign in
+                Admin
               </Link>
             )}
           </div>
 
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 rounded-lg text-stone-400 hover:text-stone-200 hover:bg-stone-800"
+            className="md:hidden p-2 rounded-lg text-stone-500 hover:text-stone-700 hover:bg-stone-100"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -103,10 +100,10 @@ export function Navbar() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-stone-800"
+            className="md:hidden border-t border-stone-200"
           >
-            <div className="px-4 py-4 space-y-2">
-              {navLinks.map((link) => {
+            <div className="px-4 py-4 space-y-2 bg-white">
+              {visibleLinks.map((link) => {
                 const Icon = link.icon;
                 return (
                   <Link
@@ -116,8 +113,8 @@ export function Navbar() {
                     className={`
                       flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors
                       ${isActive(link.href)
-                        ? "bg-amber-500/10 text-amber-400"
-                        : "text-stone-400 hover:bg-stone-800"
+                        ? "bg-[#006400]/10 text-[#006400]"
+                        : "text-stone-500 hover:bg-stone-100"
                       }
                     `}
                   >
@@ -127,23 +124,23 @@ export function Navbar() {
                 );
               })}
 
-              <div className="pt-4 mt-4 border-t border-stone-800">
+              <div className="pt-4 mt-4 border-t border-stone-200">
                 {session ? (
                   <button
-                    onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+                    onClick={() => signOut({ callbackUrl: "/login" })}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
                   >
                     <LogOut className="w-5 h-5" />
                     Sign out
                   </button>
                 ) : (
                   <Link
-                    href="/auth/signin"
+                    href="/login"
                     onClick={() => setMobileOpen(false)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-stone-950 text-sm font-medium rounded-lg"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[#006400] text-white text-sm font-medium rounded-lg"
                   >
                     <User className="w-5 h-5" />
-                    Sign in
+                    Admin
                   </Link>
                 )}
               </div>
@@ -154,4 +151,3 @@ export function Navbar() {
     </nav>
   );
 }
-

@@ -16,8 +16,8 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
         whileHover={hover ? { y: -2, scale: 1.01 } : undefined}
         transition={{ duration: 0.2 }}
         className={`
-          bg-stone-900/80 backdrop-blur-sm border border-stone-800 rounded-xl
-          shadow-xl shadow-black/20 ${className}
+          bg-white border border-stone-200 rounded-xl
+          shadow-sm ${className}
         `}
         {...props}
       >
@@ -28,4 +28,3 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
 );
 
 Card.displayName = "Card";
-

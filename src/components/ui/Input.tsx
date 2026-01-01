@@ -19,7 +19,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-stone-300"
+            className="block text-sm font-medium text-stone-700"
           >
             {label}
           </label>
@@ -29,11 +29,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           id={inputId}
           whileFocus={{ scale: 1.01 }}
           className={`
-            w-full px-4 py-2.5 bg-stone-900 border rounded-lg
-            text-stone-100 placeholder-stone-500
-            focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500
+            w-full px-4 py-2.5 bg-white border rounded-lg
+            text-stone-900 placeholder-stone-400
+            focus:outline-none focus:ring-2 focus:ring-[#006400]/50 focus:border-[#006400]
             transition-colors duration-200
-            ${error ? "border-rose-500" : "border-stone-700"}
+            ${error ? "border-rose-500" : "border-stone-300"}
             ${className}
           `}
           {...props}
@@ -42,7 +42,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           <motion.p
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-sm text-rose-400"
+            className="text-sm text-rose-500"
           >
             {error}
           </motion.p>
@@ -56,4 +56,3 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
 );
 
 Input.displayName = "Input";
-

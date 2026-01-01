@@ -26,8 +26,8 @@ export function Checkbox({ checked, onChange, label, disabled }: CheckboxProps) 
           relative w-5 h-5 rounded border-2 transition-colors duration-200
           flex items-center justify-center
           ${checked
-            ? "bg-amber-500 border-amber-500"
-            : "bg-transparent border-stone-600 hover:border-stone-500"
+            ? "bg-[#006400] border-[#006400]"
+            : "bg-transparent border-stone-300 hover:border-stone-400"
           }
         `}
         disabled={disabled}
@@ -37,14 +37,14 @@ export function Checkbox({ checked, onChange, label, disabled }: CheckboxProps) 
           animate={{ scale: checked ? 1 : 0 }}
           transition={{ type: "spring", stiffness: 500, damping: 30 }}
         >
-          <Check className="w-3 h-3 text-stone-950" strokeWidth={3} />
+          <Check className="w-3 h-3 text-white" strokeWidth={3} />
         </motion.div>
       </motion.button>
       {label && (
         <span
           className={`
             text-sm transition-all duration-200
-            ${checked ? "text-stone-500 line-through" : "text-stone-200"}
+            ${checked ? "text-stone-400 line-through" : "text-stone-700"}
           `}
         >
           {label}
@@ -53,4 +53,3 @@ export function Checkbox({ checked, onChange, label, disabled }: CheckboxProps) 
     </label>
   );
 }
-

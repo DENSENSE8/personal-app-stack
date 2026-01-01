@@ -12,9 +12,9 @@ interface ButtonProps extends Omit<HTMLMotionProps<"button">, "children"> {
 }
 
 const variantStyles = {
-  primary: "bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-lg shadow-amber-500/20",
-  secondary: "bg-stone-800 hover:bg-stone-700 text-stone-100 border border-stone-700",
-  ghost: "bg-transparent hover:bg-stone-800/50 text-stone-300",
+  primary: "bg-[#006400] hover:bg-[#228B22] text-white shadow-lg shadow-[#006400]/20",
+  secondary: "bg-stone-200 hover:bg-stone-300 text-stone-800 border border-stone-300",
+  ghost: "bg-transparent hover:bg-stone-100 text-stone-600",
   danger: "bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20",
 };
 
@@ -47,4 +47,3 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 Button.displayName = "Button";
-

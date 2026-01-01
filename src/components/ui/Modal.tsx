@@ -43,7 +43,7 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalPr
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50"
           />
           <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
             <motion.div
@@ -52,16 +52,16 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalPr
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className={`
-                w-full ${sizes[size]} bg-stone-900 border border-stone-800
-                rounded-2xl shadow-2xl shadow-black/40 overflow-hidden
+                w-full ${sizes[size]} bg-white border border-stone-200
+                rounded-2xl shadow-xl overflow-hidden
               `}
             >
               {title && (
-                <div className="flex items-center justify-between px-6 py-4 border-b border-stone-800">
-                  <h2 className="text-lg font-semibold text-stone-100">{title}</h2>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200">
+                  <h2 className="text-lg font-semibold text-stone-900">{title}</h2>
                   <button
                     onClick={onClose}
-                    className="p-1.5 rounded-lg hover:bg-stone-800 text-stone-400 hover:text-stone-200 transition-colors"
+                    className="p-1.5 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition-colors"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -75,4 +75,3 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }: ModalPr
     </AnimatePresence>
   );
 }
-

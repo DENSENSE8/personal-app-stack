@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Trash2, Upload, Image as ImageIcon, X } from "lucide-react";
+import { Plus, Trash2, Upload, X } from "lucide-react";
 import { Button, Input, Badge, Card } from "@/components/ui";
 import Image from "next/image";
 
@@ -129,13 +129,13 @@ export function RecipeForm({
       />
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-stone-300">Description</label>
+        <label className="block text-sm font-medium text-stone-700">Description</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="A delicious family recipe..."
           rows={3}
-          className="w-full px-4 py-2.5 bg-stone-900 border border-stone-700 rounded-lg text-stone-100 placeholder-stone-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500 resize-none"
+          className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#006400]/50 focus:border-[#006400] resize-none"
         />
       </div>
 
@@ -157,7 +157,7 @@ export function RecipeForm({
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium text-stone-300">Image</label>
+        <label className="block text-sm font-medium text-stone-700">Image</label>
         {imageUrl ? (
           <div className="relative h-48 rounded-lg overflow-hidden">
             <Image src={imageUrl} alt="Recipe" fill className="object-cover" />
@@ -170,7 +170,7 @@ export function RecipeForm({
             </button>
           </div>
         ) : (
-          <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-stone-700 rounded-lg cursor-pointer hover:border-stone-600 transition-colors">
+          <label className="flex flex-col items-center justify-center h-32 border-2 border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-stone-400 transition-colors">
             <input
               type="file"
               accept="image/*"
@@ -181,7 +181,7 @@ export function RecipeForm({
               <div className="animate-pulse text-stone-500">Uploading...</div>
             ) : (
               <>
-                <Upload className="w-8 h-8 text-stone-600 mb-2" />
+                <Upload className="w-8 h-8 text-stone-400 mb-2" />
                 <span className="text-sm text-stone-500">Click to upload image</span>
               </>
             )}
@@ -190,7 +190,7 @@ export function RecipeForm({
       </div>
 
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-stone-300">Ingredients</label>
+        <label className="block text-sm font-medium text-stone-700">Ingredients</label>
 
         <AnimatePresence>
           {ingredients.map((ing, index) => (
@@ -201,13 +201,13 @@ export function RecipeForm({
               exit={{ opacity: 0, x: 20 }}
             >
               <Card hover={false} className="p-3 flex items-center justify-between">
-                <span className="text-stone-200">
+                <span className="text-stone-700">
                   {ing.quantity} {ing.unit} {ing.name}
                 </span>
                 <button
                   type="button"
                   onClick={() => removeIngredient(index)}
-                  className="p-1.5 rounded-lg hover:bg-rose-500/10 text-stone-500 hover:text-rose-400 transition-colors"
+                  className="p-1.5 rounded-lg hover:bg-rose-50 text-stone-400 hover:text-rose-500 transition-colors"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -240,7 +240,7 @@ export function RecipeForm({
       </div>
 
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-stone-300">Tags</label>
+        <label className="block text-sm font-medium text-stone-700">Tags</label>
 
         <div className="flex flex-wrap gap-2">
           <AnimatePresence>
@@ -277,4 +277,3 @@ export function RecipeForm({
     </form>
   );
 }
-

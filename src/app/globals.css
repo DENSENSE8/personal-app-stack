@@ -2,11 +2,14 @@
 
 :root {
   --font-outfit: "Outfit", system-ui, sans-serif;
+  --primary: #006400;
+  --primary-light: #228B22;
+  --primary-dark: #004d00;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #44403c #1c1917;
+  scrollbar-color: #44403c #f5f5f5;
 }
 
 *::-webkit-scrollbar {
@@ -15,7 +18,7 @@
 }
 
 *::-webkit-scrollbar-track {
-  background: #1c1917;
+  background: #f5f5f5;
 }
 
 *::-webkit-scrollbar-thumb {
@@ -28,12 +31,12 @@
 }
 
 ::selection {
-  background-color: rgba(245, 158, 11, 0.3);
-  color: #fef3c7;
+  background-color: rgba(0, 100, 0, 0.3);
+  color: #004d00;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.7);
+  filter: invert(0.3);
   cursor: pointer;
 }
 

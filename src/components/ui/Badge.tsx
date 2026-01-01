@@ -10,10 +10,10 @@ interface BadgeProps {
 }
 
 const variants = {
-  default: "bg-stone-800 text-stone-300 border-stone-700",
-  success: "bg-emerald-900/50 text-emerald-400 border-emerald-800",
-  warning: "bg-amber-900/50 text-amber-400 border-amber-800",
-  danger: "bg-rose-900/50 text-rose-400 border-rose-800",
+  default: "bg-stone-100 text-stone-600 border-stone-200",
+  success: "bg-green-50 text-[#006400] border-green-200",
+  warning: "bg-amber-50 text-amber-700 border-amber-200",
+  danger: "bg-rose-50 text-rose-600 border-rose-200",
 };
 
 export function Badge({ children, variant = "default", onRemove }: BadgeProps) {
@@ -31,7 +31,7 @@ export function Badge({ children, variant = "default", onRemove }: BadgeProps) {
       {onRemove && (
         <button
           onClick={onRemove}
-          className="p-0.5 rounded-full hover:bg-white/10 transition-colors"
+          className="p-0.5 rounded-full hover:bg-black/10 transition-colors"
         >
           <X className="w-3 h-3" />
         </button>
@@ -39,4 +39,3 @@ export function Badge({ children, variant = "default", onRemove }: BadgeProps) {
     </motion.span>
   );
 }
-

@@ -48,7 +48,7 @@ export default function ChecklistsPage() {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.push("/auth/signin");
+      router.push("/login");
     } else if (status === "authenticated") {
       fetchChecklists();
     }
@@ -127,8 +127,8 @@ export default function ChecklistsPage() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-stone-100">Checklists</h1>
-          <p className="text-stone-400 mt-1">Organize your daily tasks and reminders</p>
+          <h1 className="text-3xl font-bold text-stone-900">Checklists</h1>
+          <p className="text-stone-500 mt-1">Organize your daily tasks and reminders</p>
         </div>
         <Button onClick={() => setModalOpen(true)}>
           <Plus className="w-4 h-4" />
@@ -139,22 +139,22 @@ export default function ChecklistsPage() {
       <div className="flex items-center justify-center gap-4 mb-8">
         <button
           onClick={() => navigateDate(-1)}
-          className="p-2 rounded-lg hover:bg-stone-800 text-stone-400 hover:text-stone-200 transition-colors"
+          className="p-2 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-2 px-4 py-2 bg-stone-800/50 rounded-lg">
-          <Calendar className="w-4 h-4 text-amber-500" />
+        <div className="flex items-center gap-2 px-4 py-2 bg-stone-100 rounded-lg">
+          <Calendar className="w-4 h-4 text-[#006400]" />
           <input
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-transparent text-stone-200 text-sm focus:outline-none"
+            className="bg-transparent text-stone-700 text-sm focus:outline-none"
           />
         </div>
         <button
           onClick={() => navigateDate(1)}
-          className="p-2 rounded-lg hover:bg-stone-800 text-stone-400 hover:text-stone-200 transition-colors"
+          className="p-2 rounded-lg hover:bg-stone-100 text-stone-500 hover:text-stone-700 transition-colors"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
@@ -167,9 +167,9 @@ export default function ChecklistsPage() {
             animate={{ opacity: 1 }}
             className="text-center py-16"
           >
-            <Calendar className="w-16 h-16 text-stone-700 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-stone-400">No checklists for this date</h3>
-            <p className="text-stone-500 mt-1">Create one to get started</p>
+            <Calendar className="w-16 h-16 text-stone-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-stone-500">No checklists for this date</h3>
+            <p className="text-stone-400 mt-1">Create one to get started</p>
           </motion.div>
         ) : (
           <div className="space-y-4">
@@ -190,7 +190,7 @@ export default function ChecklistsPage() {
                   <Card hover={false} className="p-5">
                     <div className="flex items-start justify-between mb-4">
                       <div>
-                        <h3 className="text-lg font-semibold text-stone-100">
+                        <h3 className="text-lg font-semibold text-stone-900">
                           {checklist.title}
                         </h3>
                         <p className="text-sm text-stone-500">
@@ -209,18 +209,18 @@ export default function ChecklistsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(checklist.id)}
-                          className="text-rose-400 hover:text-rose-300"
+                          className="text-rose-500 hover:text-rose-600"
                         >
                           Delete
                         </Button>
                       </div>
                     </div>
 
-                    <div className="h-1.5 bg-stone-800 rounded-full overflow-hidden mb-4">
+                    <div className="h-1.5 bg-stone-200 rounded-full overflow-hidden mb-4">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${progress}%` }}
-                        className="h-full bg-gradient-to-r from-amber-500 to-amber-400"
+                        className="h-full bg-[#006400]"
                       />
                     </div>
 
@@ -228,32 +228,32 @@ export default function ChecklistsPage() {
                       {checklist.tasks.map((task) => (
                         <div
                           key={task.id}
-                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-stone-800/50 transition-colors"
+                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-stone-50 transition-colors"
                         >
                           <button
                             onClick={() => task.id && handleTaskToggle(task.id, !task.completed)}
                             className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
                               task.completed
-                                ? "bg-amber-500 border-amber-500"
-                                : "border-stone-600 hover:border-stone-500"
+                                ? "bg-[#006400] border-[#006400]"
+                                : "border-stone-300 hover:border-stone-400"
                             }`}
                           >
                             {task.completed && (
-                              <svg className="w-3 h-3 text-stone-950" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                               </svg>
                             )}
                           </button>
                           <span
                             className={`flex-1 text-sm ${
-                              task.completed ? "text-stone-500 line-through" : "text-stone-200"
+                              task.completed ? "text-stone-400 line-through" : "text-stone-700"
                             }`}
                           >
                             {task.description}
                           </span>
                           <button
                             onClick={() => task.id && handleTaskDelete(task.id)}
-                            className="p-1 rounded hover:bg-rose-500/10 text-stone-600 hover:text-rose-400 transition-colors"
+                            className="p-1 rounded hover:bg-rose-50 text-stone-400 hover:text-rose-500 transition-colors"
                           >
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -304,4 +304,3 @@ export default function ChecklistsPage() {
     </div>
   );
 }
-
