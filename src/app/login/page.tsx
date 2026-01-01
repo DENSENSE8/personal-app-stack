@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, FormEvent } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Lock, User, LogIn } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {
@@ -14,7 +12,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setSubmitting(true);
@@ -40,95 +38,192 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-white">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#ffffff",
+        padding: "1rem",
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "400px",
+          backgroundColor: "#fff",
+          border: "1px solid #e5e5e5",
+          borderRadius: "12px",
+          padding: "2rem",
+          boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+        }}
       >
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", delay: 0.2 }}
-            className="inline-flex items-center justify-center w-16 h-16 bg-[#006400] rounded-2xl mb-4 shadow-lg shadow-[#006400]/30"
+        <div style={{ textAlign: "center", marginBottom: "2rem" }}>
+          <div
+            style={{
+              width: "64px",
+              height: "64px",
+              backgroundColor: "#006400",
+              borderRadius: "16px",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: "1rem",
+            }}
           >
-            <LogIn className="w-8 h-8 text-white" />
-          </motion.div>
-          <h1 className="text-3xl font-bold text-stone-900">Admin Login</h1>
-          <p className="text-[#006400] mt-2">Sign in to access the dashboard</p>
-        </div>
-
-        <div className="bg-white border border-stone-200 rounded-xl shadow-sm p-6">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="p-3 bg-rose-50 border border-rose-200 rounded-lg text-rose-600 text-sm text-center"
-              >
-                {error}
-              </motion.div>
-            )}
-
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-stone-700">
-                Username
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#006400]/50 focus:border-[#006400]"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-stone-700">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="w-full pl-10 pr-4 py-2.5 bg-white border border-stone-300 rounded-lg text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-[#006400]/50 focus:border-[#006400]"
-                  required
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full py-2.5 bg-[#006400] hover:bg-[#228B22] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            <svg
+              width="32"
+              height="32"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
-              {submitting ? (
-                <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                "Sign In"
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 pt-6 border-t border-stone-200 text-center">
-            <Link
-              href="/"
-              className="text-[#006400] hover:underline font-medium text-sm"
-            >
-              Back to Portfolio
-            </Link>
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+              <polyline points="10 17 15 12 10 7" />
+              <line x1="15" y1="12" x2="3" y2="12" />
+            </svg>
           </div>
+          <h1
+            style={{
+              fontSize: "1.875rem",
+              fontWeight: "700",
+              color: "#1c1917",
+              margin: "0",
+            }}
+          >
+            Admin Login
+          </h1>
+          <p style={{ color: "#006400", marginTop: "0.5rem" }}>
+            Sign in to access the dashboard
+          </p>
         </div>
-      </motion.div>
+
+        <form onSubmit={handleSubmit}>
+          {error && (
+            <div
+              style={{
+                padding: "0.75rem",
+                backgroundColor: "#fef2f2",
+                border: "1px solid #fecaca",
+                borderRadius: "8px",
+                color: "#dc2626",
+                fontSize: "0.875rem",
+                textAlign: "center",
+                marginBottom: "1rem",
+              }}
+            >
+              {error}
+            </div>
+          )}
+
+          <div style={{ marginBottom: "1rem" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.875rem",
+                fontWeight: "500",
+                color: "#44403c",
+                marginBottom: "0.375rem",
+              }}
+            >
+              Username
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="admin"
+              required
+              style={{
+                width: "100%",
+                padding: "0.625rem 1rem",
+                backgroundColor: "#fff",
+                border: "1px solid #d6d3d1",
+                borderRadius: "8px",
+                fontSize: "1rem",
+                color: "#1c1917",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          <div style={{ marginBottom: "1.5rem" }}>
+            <label
+              style={{
+                display: "block",
+                fontSize: "0.875rem",
+                fontWeight: "500",
+                color: "#44403c",
+                marginBottom: "0.375rem",
+              }}
+            >
+              Password
+            </label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="admin"
+              required
+              style={{
+                width: "100%",
+                padding: "0.625rem 1rem",
+                backgroundColor: "#fff",
+                border: "1px solid #d6d3d1",
+                borderRadius: "8px",
+                fontSize: "1rem",
+                color: "#1c1917",
+                outline: "none",
+                boxSizing: "border-box",
+              }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              width: "100%",
+              padding: "0.75rem",
+              backgroundColor: "#006400",
+              color: "#fff",
+              fontWeight: "500",
+              fontSize: "1rem",
+              border: "none",
+              borderRadius: "8px",
+              cursor: submitting ? "not-allowed" : "pointer",
+              opacity: submitting ? 0.6 : 1,
+            }}
+          >
+            {submitting ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
+
+        <div
+          style={{
+            marginTop: "1.5rem",
+            paddingTop: "1.5rem",
+            borderTop: "1px solid #e5e5e5",
+            textAlign: "center",
+          }}
+        >
+          <Link
+            href="/"
+            style={{
+              color: "#006400",
+              fontSize: "0.875rem",
+              textDecoration: "none",
+            }}
+          >
+            ← Back to Portfolio
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
