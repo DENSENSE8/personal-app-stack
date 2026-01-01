@@ -1,12 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { InputHTMLAttributes, forwardRef } from "react";
+import { motion, HTMLMotionProps } from "framer-motion";
+import { forwardRef } from "react";
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends Omit<HTMLMotionProps<"input">, "id"> {
   label?: string;
   error?: string;
   helper?: string;
+  id?: string;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(

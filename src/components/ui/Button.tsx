@@ -1,16 +1,17 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, HTMLMotionProps } from "framer-motion";
 import { Loader2 } from "lucide-react";
-import { ButtonHTMLAttributes, forwardRef } from "react";
+import { forwardRef, ReactNode } from "react";
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+interface ButtonProps extends Omit<HTMLMotionProps<"button">, "children"> {
   variant?: "primary" | "secondary" | "ghost" | "danger";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
+  children?: ReactNode;
 }
 
-const variants = {
+const variantStyles = {
   primary: "bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-lg shadow-amber-500/20",
   secondary: "bg-stone-800 hover:bg-stone-700 text-stone-100 border border-stone-700",
   ghost: "bg-transparent hover:bg-stone-800/50 text-stone-300",
@@ -33,7 +34,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         className={`
           inline-flex items-center justify-center gap-2 font-medium rounded-lg
           transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed
-          ${variants[variant]} ${sizes[size]} ${className}
+          ${variantStyles[variant]} ${sizes[size]} ${className}
         `}
         disabled={disabled || loading}
         {...props}
