@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import "./globals.css";
 
 // Types
@@ -212,6 +213,8 @@ export default function App() {
   const [showNewItem, setShowNewItem] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newItemTitle, setNewItemTitle] = useState("");
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderName, setEditingFolderName] = useState("");
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
@@ -285,22 +288,34 @@ export default function App() {
     if (!type) return;
 
     try {
-      const endpoint = type === "recipe" ? "recipes" : type === "checklist" ? "checklists" : "reminders";
-      const url = selectedFolderId 
-        ? `/api/${endpoint}?folderId=${selectedFolderId}`
-        : `/api/${endpoint}`;
-      
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        if (type === "recipe") setRecipes(data);
-        else if (type === "checklist") setChecklists(data);
-        else setReminders(data);
+      if (view === "reminders") {
+        // Fetch all for consolidated view
+        const [remRes, checkRes, recRes] = await Promise.all([
+          fetch("/api/reminders"),
+          fetch("/api/checklists"),
+          fetch("/api/recipes"),
+        ]);
+        if (remRes.ok) setReminders(await remRes.json());
+        if (checkRes.ok) setChecklists(await checkRes.json());
+        if (recRes.ok) setRecipes(await recRes.json());
+      } else {
+        const endpoint = type === "recipe" ? "recipes" : type === "checklist" ? "checklists" : "reminders";
+        const url = selectedFolderId 
+          ? `/api/${endpoint}?folderId=${selectedFolderId}`
+          : `/api/${endpoint}`;
+        
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          if (type === "recipe") setRecipes(data);
+          else if (type === "checklist") setChecklists(data);
+          else setReminders(data);
+        }
       }
     } catch (error) {
       console.error("Error fetching items:", error);
     }
-  }, [getCurrentType, selectedFolderId]);
+  }, [view, getCurrentType, selectedFolderId]);
 
   // Fetch data when view changes
   useEffect(() => {
@@ -390,6 +405,23 @@ export default function App() {
       if (selectedFolderId === id) setSelectedFolderId(null);
     } catch (error) {
       console.error("Error deleting folder:", error);
+    }
+  }
+
+  async function updateFolder(id: string, newName: string) {
+    if (!newName.trim()) return;
+    try {
+      const res = await fetch(`/api/folders/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName }),
+      });
+      if (res.ok) {
+        setEditingFolderId(null);
+        fetchFolders();
+      }
+    } catch (error) {
+      console.error("Error updating folder:", error);
     }
   }
 
@@ -539,12 +571,19 @@ export default function App() {
               { title: "About", icon: "👤", desc: "Learn more about my journey and skills" },
               { title: "Contact", icon: "✉️", desc: "Let's create something amazing together" },
             ].map((section, i) => (
-              <div key={section.title} style={{ ...styles.sectionCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, animationDelay: `${i * 0.1}s` }}>
+              <motion.div 
+                key={section.title} 
+                whileHover={{ y: -10, boxShadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
+                style={{ ...styles.sectionCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
+              >
                 <span style={styles.sectionIcon}>{section.icon}</span>
                 <h2 style={{ ...styles.sectionTitle, color: theme.text }}>{section.title}</h2>
                 <p style={{ ...styles.sectionDesc, color: theme.textSecondary }}>{section.desc}</p>
                 <span style={styles.comingSoon}>Coming Soon</span>
-              </div>
+              </motion.div>
             ))}
           </div>
         </main>
@@ -624,7 +663,10 @@ export default function App() {
         <header style={{ ...styles.dashHeader, background: darkMode ? "rgba(15, 23, 42, 0.9)" : "rgba(255, 255, 255, 0.9)", borderColor: theme.border }}>
           <div>
             <h1 style={{ ...styles.dashTitle, color: theme.textSecondary }}>Welcome Back,</h1>
-            <p style={styles.dashName}>Michael Garisek! 👋</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <p style={styles.dashName}>Michael Garisek!</p>
+              <span style={{ fontSize: 28 }}>👋</span>
+            </div>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <button onClick={toggleTheme} style={{ ...styles.themeToggle, background: theme.bgSecondary, border: `1px solid ${theme.border}`, color: theme.text }}>
@@ -646,17 +688,22 @@ export default function App() {
               { view: "checklists" as View, icon: Icons.checklist, title: "Checklists", desc: "Track tasks and to-dos", color: "#0d9488" },
               { view: "reminders" as View, icon: Icons.reminder, title: "Reminders", desc: "Never forget important things", color: "#14b8a6" },
             ].map((card, i) => (
-              <button
+              <motion.button
                 key={card.view}
+                whileHover={{ y: -10, scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1 }}
                 onClick={() => goTo(card.view)}
-                style={{ ...styles.dashCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, animationDelay: `${i * 0.1}s` }}
+                style={{ ...styles.dashCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
               >
                 <div style={{ ...styles.cardIconWrap, background: `linear-gradient(135deg, ${card.color}, ${card.color}dd)` }}>
                   {card.icon}
-                    </div>
+                </div>
                 <h3 style={{ ...styles.cardTitle, color: theme.text }}>{card.title}</h3>
                 <p style={{ ...styles.cardDesc, color: theme.textSecondary }}>{card.desc}</p>
-              </button>
+              </motion.button>
             ))}
           </div>
         </main>
@@ -714,13 +761,32 @@ export default function App() {
           
           {folders.map((folder) => (
             <div key={folder.id} style={styles.folderItemWrap}>
-              <button
-                onClick={() => setSelectedFolderId(folder.id)}
-                style={{ ...styles.folderItem, background: selectedFolderId === folder.id ? "linear-gradient(135deg, #059669, #0d9488)" : "transparent", color: selectedFolderId === folder.id ? "#fff" : theme.text }}
-              >
-                {Icons.folder}
-                <span>{folder.name}</span>
-              </button>
+              {editingFolderId === folder.id ? (
+                <input
+                  type="text"
+                  value={editingFolderName}
+                  onChange={(e) => setEditingFolderName(e.target.value)}
+                  onBlur={() => updateFolder(folder.id, editingFolderName)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") updateFolder(folder.id, editingFolderName);
+                    if (e.key === "Escape") setEditingFolderId(null);
+                  }}
+                  autoFocus
+                  style={{ ...styles.miniInput, margin: 0, padding: "8px 12px" }}
+                />
+              ) : (
+                <button
+                  onClick={() => setSelectedFolderId(folder.id)}
+                  onDoubleClick={() => {
+                    setEditingFolderId(folder.id);
+                    setEditingFolderName(folder.name);
+                  }}
+                  style={{ ...styles.folderItem, background: selectedFolderId === folder.id ? "linear-gradient(135deg, #059669, #0d9488)" : "transparent", color: selectedFolderId === folder.id ? "#fff" : theme.text }}
+                >
+                  {Icons.folder}
+                  <span>{folder.name}</span>
+                </button>
+              )}
               <button onClick={() => deleteFolder(folder.id)} style={{ ...styles.folderDeleteBtn, color: theme.textMuted }}>
                 {Icons.trash}
               </button>
@@ -771,26 +837,147 @@ export default function App() {
         </header>
 
         <div style={styles.sectionContent}>
-          <div style={styles.contentHeader}>
-            <h2 style={{ ...styles.contentTitle, color: theme.text }}>
-              {selectedFolderId ? folders.find(f => f.id === selectedFolderId)?.name : `All ${currentTitle}`}
-            </h2>
-            <button onClick={() => setShowNewItem(true)} style={styles.addItemBtn}>
-              {Icons.plus}
-              <span>Add {view === "recipes" ? "Recipe" : view === "checklists" ? "Checklist" : "Reminder"}</span>
-            </button>
-          </div>
-
-          {/* Items List */}
-          <div style={styles.itemsList}>
-            {currentItems.length === 0 ? (
-              <div style={{ ...styles.emptyState, background: theme.cardBg, borderColor: theme.border }}>
-                <span style={styles.emptyIcon}>📁</span>
-                <p style={{ color: theme.textSecondary }}>No items yet. Create your first one!</p>
+          {view === "reminders" ? (
+            <div style={styles.consolidatedGrid}>
+              {/* Checklists - Left */}
+              <div style={styles.col}>
+                <h3 style={{ ...styles.colTitle, color: theme.text }}>Checklists</h3>
+                <div style={styles.itemsList}>
+                  {checklists.map((item) => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      key={item.id}
+                      style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
+                    >
+                      <div style={styles.itemHeader}>
+                        <h3 style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}>{item.title}</h3>
+                        <div style={styles.itemActions}>
+                          <button onClick={() => resetChecklist(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: theme.textSecondary }} title="Reset">
+                            {Icons.reset}
+                          </button>
+                          <button onClick={() => deleteItem(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">
+                            {Icons.trash}
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{ ...styles.subItemsList, borderColor: theme.borderLight }}>
+                        {item.items.map((task) => (
+                          <div key={task.id} style={styles.subItem}>
+                            <button
+                              onClick={() => toggleChecklistItem(item.id, task.id, task.checked)}
+                              style={{ ...styles.checkbox, width: 20, height: 20, background: task.checked ? "linear-gradient(135deg, #059669, #0d9488)" : theme.cardBg, border: `2px solid ${task.checked ? "transparent" : theme.border}` }}
+                            >
+                              {task.checked && Icons.check}
+                            </button>
+                            <span style={{ ...styles.subItemText, fontSize: 13, textDecoration: task.checked ? "line-through" : "none", color: task.checked ? theme.textMuted : theme.text }}>
+                              {task.text}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
               </div>
-            ) : (
-              currentItems.map((item) => (
-                <div key={item.id} style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}>
+
+              {/* Reminders - Middle */}
+              <div style={styles.col}>
+                <h3 style={{ ...styles.colTitle, color: theme.text }}>Reminders</h3>
+                <div style={styles.itemsList}>
+                  {reminders.map((item) => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      key={item.id}
+                      style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
+                    >
+                      <div style={styles.itemHeader}>
+                        <h3 style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}>{item.title}</h3>
+                        <div style={styles.itemActions}>
+                          <button onClick={() => deleteItem(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">
+                            {Icons.trash}
+                          </button>
+                        </div>
+                      </div>
+                      <div style={{ ...styles.subItemsList, borderColor: theme.borderLight }}>
+                        {item.items.map((ri) => (
+                          <div key={ri.id} style={styles.subItem}>
+                            <button
+                              onClick={() => toggleReminderItem(item.id, ri.id, ri.checked)}
+                              style={{ ...styles.checkbox, width: 20, height: 20, background: ri.checked ? "linear-gradient(135deg, #059669, #0d9488)" : theme.cardBg, border: `2px solid ${ri.checked ? "transparent" : theme.border}` }}
+                            >
+                              {ri.checked && Icons.check}
+                            </button>
+                            <span style={{ ...styles.subItemText, fontSize: 13, textDecoration: ri.checked ? "line-through" : "none", color: ri.checked ? theme.textMuted : theme.text }}>
+                              {ri.text}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recipes - Right */}
+              <div style={styles.col}>
+                <h3 style={{ ...styles.colTitle, color: theme.text }}>Recipes</h3>
+                <div style={styles.itemsList}>
+                  {recipes.map((item) => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      key={item.id}
+                      style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
+                    >
+                      <div style={styles.itemHeader}>
+                        <h3 style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}>{item.title}</h3>
+                        <div style={styles.itemActions}>
+                          <button onClick={() => deleteItem(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">
+                            {Icons.trash}
+                          </button>
+                        </div>
+                      </div>
+                      {item.description && (
+                        <p style={{ ...styles.recipeDesc, fontSize: 13, color: theme.textSecondary }}>{item.description}</p>
+                      )}
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={styles.contentHeader}>
+                <h2 style={{ ...styles.contentTitle, color: theme.text }}>
+                  {selectedFolderId ? folders.find(f => f.id === selectedFolderId)?.name : `All ${currentTitle}`}
+                </h2>
+                <button onClick={() => setShowNewItem(true)} style={styles.addItemBtn}>
+                  {Icons.plus}
+                  <span>Add {view === "recipes" ? "Recipe" : view === "checklists" ? "Checklist" : "Reminder"}</span>
+                </button>
+              </div>
+
+              {/* Items List */}
+              <div style={styles.itemsList}>
+                {currentItems.length === 0 ? (
+                  <div style={{ ...styles.emptyState, background: theme.cardBg, borderColor: theme.border }}>
+                    <span style={styles.emptyIcon}>📁</span>
+                    <p style={{ color: theme.textSecondary }}>No items yet. Create your first one!</p>
+                  </div>
+                ) : (
+                  currentItems.map((item) => (
+                    <motion.div 
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      key={item.id} 
+                      style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
+                    >
                   <div style={styles.itemHeader}>
                     <h3 style={{ ...styles.itemTitle, color: theme.text }}>{item.title}</h3>
                     <div style={styles.itemActions}>
@@ -821,7 +1008,7 @@ export default function App() {
                 </span>
                           {task.completedAt && (
                             <span style={{ ...styles.timestamp, color: theme.textMuted }}>
-                              {new Date(task.completedAt).toLocaleDateString()}
+                              {new Date(task.completedAt).toLocaleDateString()} {new Date(task.completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           )}
                         </div>
@@ -858,7 +1045,7 @@ export default function App() {
                           </span>
                           {ri.completedAt && (
                             <span style={{ ...styles.timestamp, color: theme.textMuted }}>
-                              {new Date(ri.completedAt).toLocaleDateString()}
+                              {new Date(ri.completedAt).toLocaleDateString()} {new Date(ri.completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           )}
         </div>
@@ -883,7 +1070,7 @@ export default function App() {
                   {view === "recipes" && (item as RecipeType).description && (
                     <p style={{ ...styles.recipeDesc, color: theme.textSecondary }}>{(item as RecipeType).description}</p>
                   )}
-                </div>
+                </motion.div>
               ))
             )}
           </div>
@@ -891,47 +1078,66 @@ export default function App() {
       </div>
 
       {/* New Item Modal */}
-      {showNewItem && (
-        <div style={styles.modalOverlay}>
-          <div style={{ ...styles.modal, background: theme.cardBg }}>
-            <h2 style={{ ...styles.modalTitle, color: theme.text }}>New {view === "recipes" ? "Recipe" : view === "checklists" ? "Checklist" : "Reminder"}</h2>
-            <input
-              type="text"
-              value={newItemTitle}
-              onChange={(e) => setNewItemTitle(e.target.value)}
-              placeholder="Enter title..."
-              style={{ ...styles.modalInput, background: theme.inputBg, border: `2px solid ${theme.inputBorder}`, color: theme.text }}
-              autoFocus
-            />
-            <div style={styles.modalActions}>
-              <button onClick={() => setShowNewItem(false)} style={{ ...styles.modalCancelBtn, background: theme.bgTertiary, color: theme.textSecondary }}>Cancel</button>
-              <button onClick={createItem} style={styles.modalConfirmBtn}>Create</button>
-            </div>
+      <AnimatePresence>
+        {showNewItem && (
+          <div style={styles.modalOverlay}>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              style={{ ...styles.modal, background: theme.cardBg }}
+            >
+              <h2 style={{ ...styles.modalTitle, color: theme.text }}>New {view === "recipes" ? "Recipe" : view === "checklists" ? "Checklist" : "Reminder"}</h2>
+              <input
+                type="text"
+                value={newItemTitle}
+                onChange={(e) => setNewItemTitle(e.target.value)}
+                placeholder="Enter title..."
+                style={{ ...styles.modalInput, background: theme.inputBg, border: `2px solid ${theme.inputBorder}`, color: theme.text }}
+                autoFocus
+              />
+              <div style={styles.modalActions}>
+                <button onClick={() => setShowNewItem(false)} style={{ ...styles.modalCancelBtn, background: theme.bgTertiary, color: theme.textSecondary }}>Cancel</button>
+                <button onClick={createItem} style={styles.modalConfirmBtn}>Create</button>
+              </div>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
 
       {/* FAB - Recipes at top, Reminders at bottom */}
       <div style={styles.fabContainer}>
-        {fabOpen && (
-          <div style={styles.fabMenu}>
-            <button onClick={() => goTo("recipes")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
-              {Icons.recipes}
-              <span>Recipes</span>
-            </button>
-            <button onClick={() => goTo("checklists")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
-              {Icons.checklist}
-              <span>Checklists</span>
-            </button>
-            <button onClick={() => goTo("reminders")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
-              {Icons.reminder}
-              <span>Reminders</span>
-            </button>
-          </div>
-        )}
-        <button onClick={() => setFabOpen(!fabOpen)} style={styles.fabButton}>
+        <AnimatePresence>
+          {fabOpen && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.8 }}
+              style={styles.fabMenu}
+            >
+              <button onClick={() => goTo("recipes")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
+                {Icons.recipes}
+                <span>Recipes</span>
+              </button>
+              <button onClick={() => goTo("checklists")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
+                {Icons.checklist}
+                <span>Checklists</span>
+              </button>
+              <button onClick={() => goTo("reminders")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
+                {Icons.reminder}
+                <span>Reminders</span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <motion.button 
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setFabOpen(!fabOpen)} 
+          style={styles.fabButton}
+        >
           {fabOpen ? Icons.close : Icons.menu}
-        </button>
+        </motion.button>
       </div>
     </div>
   );
@@ -1727,6 +1933,23 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     lineHeight: 1.6,
     margin: 0,
+  },
+  consolidatedGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gap: 32,
+    alignItems: "start",
+  },
+  col: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 16,
+  },
+  colTitle: {
+    fontSize: 18,
+    fontWeight: 700,
+    marginBottom: 8,
+    textAlign: "center",
   },
 
   // Modal
