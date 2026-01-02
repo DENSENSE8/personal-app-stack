@@ -1074,10 +1074,11 @@ export default function App() {
               ))
             )}
           </div>
-        </div>
-      </div>
+        </>
+      )}
+    </div>
 
-      {/* New Item Modal */}
+    {/* New Item Modal */}
       <AnimatePresence>
         {showNewItem && (
           <div style={styles.modalOverlay}>
@@ -1140,7 +1141,8 @@ export default function App() {
         </motion.button>
       </div>
     </div>
-  );
+  </div>
+);
 }
 
 // ==================== STYLES ====================
