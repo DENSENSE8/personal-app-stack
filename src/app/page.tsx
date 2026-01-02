@@ -170,6 +170,24 @@ const Icons = {
       <polyline points="12 19 5 12 12 5" />
     </svg>
   ),
+  sun: (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1" x2="12" y2="3" />
+      <line x1="12" y1="21" x2="12" y2="23" />
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1" y1="12" x2="3" y2="12" />
+      <line x1="21" y1="12" x2="23" y2="12" />
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+    </svg>
+  ),
+  moon: (
+    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  ),
 };
 
 export default function App() {
@@ -180,6 +198,7 @@ export default function App() {
   const [loginError, setLoginError] = useState("");
   const [fabOpen, setFabOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
   
   // Data states
   const [folders, setFolders] = useState<FolderType[]>([]);
@@ -196,13 +215,45 @@ export default function App() {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
-  // Check auth on mount
+  // Check auth and theme on mount
   useEffect(() => {
     const auth = localStorage.getItem("isAdmin");
     if (auth === "true") {
       setIsAuthed(true);
     }
+    const savedTheme = localStorage.getItem("theme");
+    if (savedTheme === "dark") {
+      setDarkMode(true);
+    }
   }, []);
+
+  // Toggle theme function
+  function toggleTheme() {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem("theme", newMode ? "dark" : "light");
+  }
+
+  // Theme colors
+  const theme = {
+    bg: darkMode ? "#0f172a" : "#ffffff",
+    bgSecondary: darkMode ? "#1e293b" : "#f9fafb",
+    bgTertiary: darkMode ? "#334155" : "#f3f4f6",
+    text: darkMode ? "#f1f5f9" : "#1f2937",
+    textSecondary: darkMode ? "#94a3b8" : "#6b7280",
+    textMuted: darkMode ? "#64748b" : "#9ca3af",
+    border: darkMode ? "#334155" : "#e5e7eb",
+    borderLight: darkMode ? "#1e293b" : "#f3f4f6",
+    cardBg: darkMode ? "#1e293b" : "#ffffff",
+    cardBorder: darkMode ? "#334155" : "#e5e7eb",
+    inputBg: darkMode ? "#1e293b" : "#f9fafb",
+    inputBorder: darkMode ? "#475569" : "#e5e7eb",
+    primary: "#059669",
+    primaryLight: "#10b981",
+    primaryGradient: "linear-gradient(135deg, #059669, #0d9488)",
+    error: "#ef4444",
+    errorBg: darkMode ? "rgba(239, 68, 68, 0.1)" : "#fef2f2",
+  };
 
   // Get current section type
   const getCurrentType = useCallback(() => {
@@ -438,23 +489,28 @@ export default function App() {
 
   // HOME VIEW
   if (view === "home") {
-    return (
-      <div style={styles.homeContainer}>
+  return (
+      <div style={{ ...styles.homeContainer, background: darkMode ? "linear-gradient(180deg, #0f172a 0%, #1e293b 100%)" : "linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%)" }}>
         {/* Decorative background elements */}
         <div style={styles.bgDecor1} />
         <div style={styles.bgDecor2} />
         <div style={styles.bgDecor3} />
 
         <header style={styles.homeHeader}>
-          <button onClick={() => goTo("login")} style={styles.adminLink}>
-            Admin →
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button onClick={toggleTheme} style={{ ...styles.themeToggle, background: theme.cardBg, border: `1px solid ${theme.border}`, color: theme.text }}>
+              {darkMode ? Icons.sun : Icons.moon}
+            </button>
+            <button onClick={() => goTo("login")} style={styles.adminLink}>
+              Admin →
+            </button>
+            </div>
         </header>
 
         <main style={styles.homeMain}>
           <div style={styles.heroSection}>
             <div style={styles.heroGlow} />
-            <h1 style={styles.heroTitle}>
+            <h1 style={{ ...styles.heroTitle, color: theme.text }}>
               <span style={styles.heroTitleAccent}>Michael</span>
               <br />
               Garisek
@@ -469,17 +525,17 @@ export default function App() {
               { title: "About", icon: "👤", desc: "Learn more about my journey and skills" },
               { title: "Contact", icon: "✉️", desc: "Let's create something amazing together" },
             ].map((section, i) => (
-              <div key={section.title} style={{ ...styles.sectionCard, animationDelay: `${i * 0.1}s` }}>
+              <div key={section.title} style={{ ...styles.sectionCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, animationDelay: `${i * 0.1}s` }}>
                 <span style={styles.sectionIcon}>{section.icon}</span>
-                <h2 style={styles.sectionTitle}>{section.title}</h2>
-                <p style={styles.sectionDesc}>{section.desc}</p>
+                <h2 style={{ ...styles.sectionTitle, color: theme.text }}>{section.title}</h2>
+                <p style={{ ...styles.sectionDesc, color: theme.textSecondary }}>{section.desc}</p>
                 <span style={styles.comingSoon}>Coming Soon</span>
               </div>
             ))}
           </div>
         </main>
 
-        <footer style={styles.footer}>
+        <footer style={{ ...styles.footer, color: theme.textMuted }}>
           <div style={styles.footerLine} />
           <p>© {new Date().getFullYear()} Michael Garisek</p>
         </footer>
@@ -490,77 +546,85 @@ export default function App() {
   // LOGIN VIEW
   if (view === "login") {
     return (
-      <div style={styles.loginContainer}>
+      <div style={{ ...styles.loginContainer, background: darkMode ? "#0f172a" : "linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #d1fae5 100%)" }}>
         <div style={styles.loginBgDecor} />
-        <div style={styles.loginBox}>
+        <div style={{ ...styles.loginBox, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}>
           <div style={styles.loginHeader}>
+            <button onClick={toggleTheme} style={{ ...styles.themeToggle, background: theme.bgSecondary, border: `1px solid ${theme.border}`, color: theme.text, position: "absolute", top: 16, right: 16 }}>
+              {darkMode ? Icons.sun : Icons.moon}
+            </button>
             <div style={styles.loginIcon}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
             </div>
-            <h1 style={styles.loginTitle}>Welcome Back</h1>
-            <p style={styles.loginSubtitle}>Sign in to access your dashboard</p>
+            <h1 style={{ ...styles.loginTitle, color: theme.text }}>Welcome Back</h1>
+            <p style={{ ...styles.loginSubtitle, color: theme.textSecondary }}>Sign in to access your dashboard</p>
           </div>
 
           <form onSubmit={handleLogin} style={styles.loginForm}>
-            {loginError && <div style={styles.errorBox}>{loginError}</div>}
+            {loginError && <div style={{ ...styles.errorBox, background: theme.errorBg, borderColor: theme.error }}>{loginError}</div>}
 
             <div style={styles.inputGroup}>
-              <label style={styles.inputLabel}>Username</label>
+              <label style={{ ...styles.inputLabel, color: theme.text }}>Username</label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Enter username"
-                style={styles.input}
+                style={{ ...styles.input, background: theme.inputBg, border: `2px solid ${theme.inputBorder}`, color: theme.text }}
               />
             </div>
 
             <div style={styles.inputGroup}>
-              <label style={styles.inputLabel}>Password</label>
+              <label style={{ ...styles.inputLabel, color: theme.text }}>Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter password"
-                style={styles.input}
+                style={{ ...styles.input, background: theme.inputBg, border: `2px solid ${theme.inputBorder}`, color: theme.text }}
               />
             </div>
 
             <button type="submit" style={styles.loginButton}>
-              Sign In
+                      Sign In
             </button>
           </form>
 
-          <button onClick={() => setView("home")} style={styles.backToHome}>
+          <button onClick={() => setView("home")} style={{ ...styles.backToHome, color: theme.primary }}>
             ← Back to Portfolio
           </button>
+            </div>
         </div>
-      </div>
     );
   }
 
   // DASHBOARD VIEW
   if (view === "dashboard") {
     return (
-      <div style={styles.dashContainer}>
+      <div style={{ ...styles.dashContainer, background: darkMode ? "linear-gradient(180deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)" : "linear-gradient(180deg, #f0fdf4 0%, #ffffff 50%, #ecfdf5 100%)" }}>
         <div style={styles.dashBgPattern} />
         
-        <header style={styles.dashHeader}>
+        <header style={{ ...styles.dashHeader, background: darkMode ? "rgba(15, 23, 42, 0.9)" : "rgba(255, 255, 255, 0.9)", borderColor: theme.border }}>
           <div>
-            <h1 style={styles.dashTitle}>Welcome Back,</h1>
+            <h1 style={{ ...styles.dashTitle, color: theme.textSecondary }}>Welcome Back,</h1>
             <p style={styles.dashName}>Michael Garisek! 👋</p>
           </div>
-          <button onClick={handleLogout} style={styles.logoutBtn}>
-            {Icons.logout}
-            <span>Logout</span>
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button onClick={toggleTheme} style={{ ...styles.themeToggle, background: theme.bgSecondary, border: `1px solid ${theme.border}`, color: theme.text }}>
+              {darkMode ? Icons.sun : Icons.moon}
+            </button>
+            <button onClick={handleLogout} style={styles.logoutBtn}>
+              {Icons.logout}
+              <span>Logout</span>
+            </button>
+          </div>
         </header>
 
         <main style={styles.dashMain}>
-          <p style={styles.dashSubtext}>What would you like to manage today?</p>
+          <p style={{ ...styles.dashSubtext, color: theme.textSecondary }}>What would you like to manage today?</p>
 
           <div style={styles.dashCards}>
             {[
@@ -571,33 +635,33 @@ export default function App() {
               <button
                 key={card.view}
                 onClick={() => goTo(card.view)}
-                style={{ ...styles.dashCard, animationDelay: `${i * 0.1}s` }}
+                style={{ ...styles.dashCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, animationDelay: `${i * 0.1}s` }}
               >
                 <div style={{ ...styles.cardIconWrap, background: `linear-gradient(135deg, ${card.color}, ${card.color}dd)` }}>
                   {card.icon}
-                </div>
-                <h3 style={styles.cardTitle}>{card.title}</h3>
-                <p style={styles.cardDesc}>{card.desc}</p>
+                    </div>
+                <h3 style={{ ...styles.cardTitle, color: theme.text }}>{card.title}</h3>
+                <p style={{ ...styles.cardDesc, color: theme.textSecondary }}>{card.desc}</p>
               </button>
             ))}
           </div>
         </main>
 
-        {/* FAB Menu */}
+        {/* FAB Menu - Recipes at top, Reminders at bottom */}
         <div style={styles.fabContainer}>
           {fabOpen && (
             <div style={styles.fabMenu}>
-              <button onClick={() => goTo("reminders")} style={styles.fabMenuItem}>
-                {Icons.reminder}
-                <span>Reminders</span>
+              <button onClick={() => goTo("recipes")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
+                {Icons.recipes}
+                <span>Recipes</span>
               </button>
-              <button onClick={() => goTo("checklists")} style={styles.fabMenuItem}>
+              <button onClick={() => goTo("checklists")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
                 {Icons.checklist}
                 <span>Checklists</span>
               </button>
-              <button onClick={() => goTo("recipes")} style={styles.fabMenuItem}>
-                {Icons.recipes}
-                <span>Recipes</span>
+              <button onClick={() => goTo("reminders")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
+                {Icons.reminder}
+                <span>Reminders</span>
               </button>
             </div>
           )}
@@ -615,11 +679,11 @@ export default function App() {
   const currentItems = view === "recipes" ? recipes : view === "checklists" ? checklists : reminders;
 
   return (
-    <div style={styles.sectionContainer}>
+    <div style={{ ...styles.sectionContainer, background: theme.bgSecondary }}>
       {/* Sidebar */}
-      <div style={{ ...styles.sidebar, transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)" }}>
-        <div style={styles.sidebarHeader}>
-          <h2 style={styles.sidebarTitle}>Folders</h2>
+      <div style={{ ...styles.sidebar, transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)", background: theme.cardBg, borderColor: theme.border }}>
+        <div style={{ ...styles.sidebarHeader, borderColor: theme.border }}>
+          <h2 style={{ ...styles.sidebarTitle, color: theme.text }}>Folders</h2>
           <button onClick={() => setShowNewFolder(true)} style={styles.addFolderBtn}>
             {Icons.plus}
           </button>
@@ -628,7 +692,7 @@ export default function App() {
         <div style={styles.folderList}>
           <button
             onClick={() => setSelectedFolderId(null)}
-            style={{ ...styles.folderItem, background: !selectedFolderId ? "linear-gradient(135deg, #059669, #0d9488)" : "transparent", color: !selectedFolderId ? "#fff" : "#374151" }}
+            style={{ ...styles.folderItem, background: !selectedFolderId ? "linear-gradient(135deg, #059669, #0d9488)" : "transparent", color: !selectedFolderId ? "#fff" : theme.text }}
           >
             {Icons.folderOpen}
             <span>All {currentTitle}</span>
@@ -638,12 +702,12 @@ export default function App() {
             <div key={folder.id} style={styles.folderItemWrap}>
               <button
                 onClick={() => setSelectedFolderId(folder.id)}
-                style={{ ...styles.folderItem, background: selectedFolderId === folder.id ? "linear-gradient(135deg, #059669, #0d9488)" : "transparent", color: selectedFolderId === folder.id ? "#fff" : "#374151" }}
+                style={{ ...styles.folderItem, background: selectedFolderId === folder.id ? "linear-gradient(135deg, #059669, #0d9488)" : "transparent", color: selectedFolderId === folder.id ? "#fff" : theme.text }}
               >
                 {Icons.folder}
                 <span>{folder.name}</span>
               </button>
-              <button onClick={() => deleteFolder(folder.id)} style={styles.folderDeleteBtn}>
+              <button onClick={() => deleteFolder(folder.id)} style={{ ...styles.folderDeleteBtn, color: theme.textMuted }}>
                 {Icons.trash}
               </button>
             </div>
@@ -652,17 +716,17 @@ export default function App() {
 
         {/* New Folder Modal */}
         {showNewFolder && (
-          <div style={styles.miniModal}>
+          <div style={{ ...styles.miniModal, background: theme.cardBg, border: `1px solid ${theme.border}` }}>
             <input
               type="text"
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder="Folder name"
-              style={styles.miniInput}
+              style={{ ...styles.miniInput, background: theme.inputBg, border: `2px solid ${theme.inputBorder}`, color: theme.text }}
               autoFocus
             />
             <div style={styles.miniModalActions}>
-              <button onClick={() => setShowNewFolder(false)} style={styles.miniCancelBtn}>Cancel</button>
+              <button onClick={() => setShowNewFolder(false)} style={{ ...styles.miniCancelBtn, background: theme.bgTertiary, color: theme.textSecondary }}>Cancel</button>
               <button onClick={createFolder} style={styles.miniConfirmBtn}>Create</button>
             </div>
           </div>
@@ -670,26 +734,31 @@ export default function App() {
       </div>
 
       {/* Sidebar Toggle */}
-      <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ ...styles.sidebarToggle, left: sidebarOpen ? 260 : 0 }}>
+      <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ ...styles.sidebarToggle, left: sidebarOpen ? 260 : 0, background: theme.cardBg, border: `1px solid ${theme.border}`, color: theme.textSecondary }}>
         {sidebarOpen ? "‹" : "›"}
       </button>
 
       {/* Main Content */}
       <div style={{ ...styles.sectionMain, marginLeft: sidebarOpen ? 280 : 0 }}>
-        <header style={styles.sectionHeader}>
+        <header style={{ ...styles.sectionHeader, background: theme.cardBg, borderColor: theme.border }}>
           <button onClick={() => goTo("dashboard")} style={styles.backBtn}>
             {Icons.back}
             <span>Dashboard</span>
           </button>
           <h1 style={styles.sectionPageTitle}>{currentTitle}</h1>
-          <button onClick={handleLogout} style={styles.headerLogout}>
-            {Icons.logout}
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button onClick={toggleTheme} style={{ ...styles.themeToggle, background: theme.bgSecondary, border: `1px solid ${theme.border}`, color: theme.text }}>
+              {darkMode ? Icons.sun : Icons.moon}
+            </button>
+            <button onClick={handleLogout} style={styles.headerLogout}>
+              {Icons.logout}
+            </button>
+          </div>
         </header>
 
         <div style={styles.sectionContent}>
           <div style={styles.contentHeader}>
-            <h2 style={styles.contentTitle}>
+            <h2 style={{ ...styles.contentTitle, color: theme.text }}>
               {selectedFolderId ? folders.find(f => f.id === selectedFolderId)?.name : `All ${currentTitle}`}
             </h2>
             <button onClick={() => setShowNewItem(true)} style={styles.addItemBtn}>
@@ -701,22 +770,22 @@ export default function App() {
           {/* Items List */}
           <div style={styles.itemsList}>
             {currentItems.length === 0 ? (
-              <div style={styles.emptyState}>
+              <div style={{ ...styles.emptyState, background: theme.cardBg, borderColor: theme.border }}>
                 <span style={styles.emptyIcon}>📁</span>
-                <p>No items yet. Create your first one!</p>
+                <p style={{ color: theme.textSecondary }}>No items yet. Create your first one!</p>
               </div>
             ) : (
               currentItems.map((item) => (
-                <div key={item.id} style={styles.itemCard}>
+                <div key={item.id} style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}>
                   <div style={styles.itemHeader}>
-                    <h3 style={styles.itemTitle}>{item.title}</h3>
+                    <h3 style={{ ...styles.itemTitle, color: theme.text }}>{item.title}</h3>
                     <div style={styles.itemActions}>
                       {view === "checklists" && (
-                        <button onClick={() => resetChecklist(item.id)} style={styles.itemActionBtn} title="Reset">
+                        <button onClick={() => resetChecklist(item.id)} style={{ ...styles.itemActionBtn, background: theme.bgTertiary, color: theme.textSecondary }} title="Reset">
                           {Icons.reset}
                         </button>
                       )}
-                      <button onClick={() => deleteItem(item.id)} style={{ ...styles.itemActionBtn, color: "#ef4444" }} title="Delete">
+                      <button onClick={() => deleteItem(item.id)} style={{ ...styles.itemActionBtn, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">
                         {Icons.trash}
                       </button>
                     </div>
@@ -724,20 +793,20 @@ export default function App() {
 
                   {/* Sub-items for Checklists */}
                   {view === "checklists" && (item as ChecklistType).items && (
-                    <div style={styles.subItemsList}>
+                    <div style={{ ...styles.subItemsList, borderColor: theme.borderLight }}>
                       {(item as ChecklistType).items.map((task) => (
                         <div key={task.id} style={styles.subItem}>
                           <button
                             onClick={() => toggleChecklistItem(item.id, task.id, task.checked)}
-                            style={{ ...styles.checkbox, background: task.checked ? "linear-gradient(135deg, #059669, #0d9488)" : "#fff" }}
+                            style={{ ...styles.checkbox, background: task.checked ? "linear-gradient(135deg, #059669, #0d9488)" : theme.cardBg, border: `2px solid ${task.checked ? "transparent" : theme.border}` }}
                           >
                             {task.checked && Icons.check}
                           </button>
-                          <span style={{ ...styles.subItemText, textDecoration: task.checked ? "line-through" : "none", color: task.checked ? "#9ca3af" : "#374151" }}>
+                          <span style={{ ...styles.subItemText, textDecoration: task.checked ? "line-through" : "none", color: task.checked ? theme.textMuted : theme.text }}>
                             {task.text}
-                          </span>
+                </span>
                           {task.completedAt && (
-                            <span style={styles.timestamp}>
+                            <span style={{ ...styles.timestamp, color: theme.textMuted }}>
                               {new Date(task.completedAt).toLocaleDateString()}
                             </span>
                           )}
@@ -747,7 +816,7 @@ export default function App() {
                         <input
                           type="text"
                           placeholder="Add item..."
-                          style={styles.subItemInput}
+                          style={{ ...styles.subItemInput, background: theme.inputBg, border: `2px dashed ${theme.border}`, color: theme.text }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               addSubItem(item.id, (e.target as HTMLInputElement).value);
@@ -755,36 +824,36 @@ export default function App() {
                             }
                           }}
                         />
-                      </div>
-                    </div>
+            </div>
+        </div>
                   )}
 
                   {/* Sub-items for Reminders */}
                   {view === "reminders" && (item as ReminderType).items && (
-                    <div style={styles.subItemsList}>
+                    <div style={{ ...styles.subItemsList, borderColor: theme.borderLight }}>
                       {(item as ReminderType).items.map((ri) => (
                         <div key={ri.id} style={styles.subItem}>
                           <button
                             onClick={() => toggleReminderItem(item.id, ri.id, ri.checked)}
-                            style={{ ...styles.checkbox, background: ri.checked ? "linear-gradient(135deg, #059669, #0d9488)" : "#fff" }}
+                            style={{ ...styles.checkbox, background: ri.checked ? "linear-gradient(135deg, #059669, #0d9488)" : theme.cardBg, border: `2px solid ${ri.checked ? "transparent" : theme.border}` }}
                           >
                             {ri.checked && Icons.check}
                           </button>
-                          <span style={{ ...styles.subItemText, textDecoration: ri.checked ? "line-through" : "none", color: ri.checked ? "#9ca3af" : "#374151" }}>
+                          <span style={{ ...styles.subItemText, textDecoration: ri.checked ? "line-through" : "none", color: ri.checked ? theme.textMuted : theme.text }}>
                             {ri.text}
                           </span>
                           {ri.completedAt && (
-                            <span style={styles.timestamp}>
+                            <span style={{ ...styles.timestamp, color: theme.textMuted }}>
                               {new Date(ri.completedAt).toLocaleDateString()}
                             </span>
                           )}
-                        </div>
+        </div>
                       ))}
                       <div style={styles.addSubItem}>
                         <input
                           type="text"
                           placeholder="Add reminder item..."
-                          style={styles.subItemInput}
+                          style={{ ...styles.subItemInput, background: theme.inputBg, border: `2px dashed ${theme.border}`, color: theme.text }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") {
                               addSubItem(item.id, (e.target as HTMLInputElement).value);
@@ -796,9 +865,9 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Recipe steps */}
+                  {/* Recipe description */}
                   {view === "recipes" && (item as RecipeType).description && (
-                    <p style={styles.recipeDesc}>{(item as RecipeType).description}</p>
+                    <p style={{ ...styles.recipeDesc, color: theme.textSecondary }}>{(item as RecipeType).description}</p>
                   )}
                 </div>
               ))
@@ -810,39 +879,39 @@ export default function App() {
       {/* New Item Modal */}
       {showNewItem && (
         <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
-            <h2 style={styles.modalTitle}>New {view === "recipes" ? "Recipe" : view === "checklists" ? "Checklist" : "Reminder"}</h2>
+          <div style={{ ...styles.modal, background: theme.cardBg }}>
+            <h2 style={{ ...styles.modalTitle, color: theme.text }}>New {view === "recipes" ? "Recipe" : view === "checklists" ? "Checklist" : "Reminder"}</h2>
             <input
               type="text"
               value={newItemTitle}
               onChange={(e) => setNewItemTitle(e.target.value)}
               placeholder="Enter title..."
-              style={styles.modalInput}
+              style={{ ...styles.modalInput, background: theme.inputBg, border: `2px solid ${theme.inputBorder}`, color: theme.text }}
               autoFocus
             />
             <div style={styles.modalActions}>
-              <button onClick={() => setShowNewItem(false)} style={styles.modalCancelBtn}>Cancel</button>
+              <button onClick={() => setShowNewItem(false)} style={{ ...styles.modalCancelBtn, background: theme.bgTertiary, color: theme.textSecondary }}>Cancel</button>
               <button onClick={createItem} style={styles.modalConfirmBtn}>Create</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* FAB */}
+      {/* FAB - Recipes at top, Reminders at bottom */}
       <div style={styles.fabContainer}>
         {fabOpen && (
           <div style={styles.fabMenu}>
-            <button onClick={() => goTo("reminders")} style={styles.fabMenuItem}>
-              {Icons.reminder}
-              <span>Reminders</span>
+            <button onClick={() => goTo("recipes")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
+              {Icons.recipes}
+              <span>Recipes</span>
             </button>
-            <button onClick={() => goTo("checklists")} style={styles.fabMenuItem}>
+            <button onClick={() => goTo("checklists")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
               {Icons.checklist}
               <span>Checklists</span>
             </button>
-            <button onClick={() => goTo("recipes")} style={styles.fabMenuItem}>
-              {Icons.recipes}
-              <span>Recipes</span>
+            <button onClick={() => goTo("reminders")} style={{ ...styles.fabMenuItem, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, color: theme.text }}>
+              {Icons.reminder}
+              <span>Reminders</span>
             </button>
           </div>
         )}
@@ -856,6 +925,17 @@ export default function App() {
 
 // ==================== STYLES ====================
 const styles: Record<string, React.CSSProperties> = {
+  // Theme Toggle
+  themeToggle: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    cursor: "pointer",
+    transition: "all 0.2s ease",
+  },
   // Home
   homeContainer: {
     minHeight: "100vh",
