@@ -1,173 +1,97 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { indexRecipe } from "@/lib/redis";
-import { z } from "zod";
-
-const updateRecipeSchema = z.object({
-  title: z.string().min(1).optional(),
-  description: z.string().optional(),
-  prepTime: z.number().optional(),
-  servings: z.number().optional(),
-  imageUrl: z.string().optional(),
-  folderId: z.string().optional().nullable(),
-  ingredients: z.array(z.object({
-    name: z.string().min(1),
-    quantity: z.string().min(1),
-    unit: z.string().optional(),
-  })).optional(),
-  tags: z.array(z.string()).optional(),
-});
 
 export async function GET(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await params;
-
-  const recipe = await prisma.recipe.findUnique({
-    where: { id },
-    include: {
-      ingredients: { include: { ingredient: true } },
-      tags: { include: { tag: true } },
-      steps: { orderBy: { order: "asc" } },
-    },
-  });
-
-  if (!recipe) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
-  return NextResponse.json(recipe);
-}
-
-export async function PUT(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await params;
-
-  const existing = await prisma.recipe.findUnique({
-    where: { id },
-  });
-
-  if (!existing) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
-  }
-
   try {
-    const body = await req.json();
-    const parsed = updateRecipeSchema.safeParse(body);
+    const { id } = await params;
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: parsed.error.flatten() },
-        { status: 400 }
-      );
-    }
-
-    const { title, description, prepTime, servings, imageUrl, folderId, ingredients, tags } = parsed.data;
-
-    if (ingredients) {
-      await prisma.recipeIngredient.deleteMany({ where: { recipeId: id } });
-    }
-
-    if (tags) {
-      await prisma.tagsOnRecipes.deleteMany({ where: { recipeId: id } });
-    }
-
-    const recipe = await prisma.recipe.update({
+    const recipe = await prisma.recipe.findUnique({
       where: { id },
-      data: {
-        ...(title && { title }),
-        ...(description !== undefined && { description }),
-        ...(prepTime !== undefined && { prepTime }),
-        ...(servings !== undefined && { servings }),
-        ...(imageUrl !== undefined && { imageUrl }),
-        ...(folderId !== undefined && { folderId }),
-        ingredients: ingredients ? {
-          create: await Promise.all(
-            ingredients.map(async (ing) => {
-              const ingredient = await prisma.ingredient.upsert({
-                where: { name: ing.name.toLowerCase() },
-                update: {},
-                create: { name: ing.name.toLowerCase(), unit: ing.unit },
-              });
-              return {
-                ingredientId: ingredient.id,
-                quantity: ing.quantity,
-              };
-            })
-          ),
-        } : undefined,
-        tags: tags ? {
-          create: await Promise.all(
-            tags.map(async (tagName) => {
-              const tag = await prisma.tag.upsert({
-                where: { name: tagName.toLowerCase() },
-                update: {},
-                create: { name: tagName.toLowerCase() },
-              });
-              return { tagId: tag.id };
-            })
-          ),
-        } : undefined,
-      },
       include: {
-        ingredients: { include: { ingredient: true } },
-        tags: { include: { tag: true } },
-        steps: { orderBy: { order: "asc" } },
+        steps: {
+          orderBy: { order: "asc" },
+        },
+        ingredients: {
+          include: {
+            ingredient: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
       },
     });
 
-    if (title || tags || ingredients) {
-      await indexRecipe(
-        recipe.title,
-        recipe.tags.map((t) => t.tag.name),
-        recipe.ingredients.map((i) => i.ingredient.name)
-      );
+    if (!recipe) {
+      return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
     }
 
     return NextResponse.json(recipe);
   } catch (error) {
-    console.error("Update recipe error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Error fetching recipe:", error);
+    return NextResponse.json({ error: "Failed to fetch recipe" }, { status: 500 });
   }
 }
 
 export async function DELETE(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const { id } = await params;
+
+    await prisma.recipe.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting recipe:", error);
+    return NextResponse.json({ error: "Failed to delete recipe" }, { status: 500 });
   }
+}
 
-  const { id } = await params;
+export async function PUT(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const { title, description, folderId, prepTime, servings, imageUrl } = await req.json();
 
-  const existing = await prisma.recipe.findUnique({
-    where: { id },
-  });
+    const recipe = await prisma.recipe.update({
+      where: { id },
+      data: {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(folderId !== undefined && { folderId }),
+        ...(prepTime !== undefined && { prepTime }),
+        ...(servings !== undefined && { servings }),
+        ...(imageUrl !== undefined && { imageUrl }),
+      },
+      include: {
+        steps: true,
+        ingredients: {
+          include: {
+            ingredient: true,
+          },
+        },
+        tags: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
 
-  if (!existing) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    return NextResponse.json(recipe);
+  } catch (error) {
+    console.error("Error updating recipe:", error);
+    return NextResponse.json({ error: "Failed to update recipe" }, { status: 500 });
   }
-
-  await prisma.recipe.delete({ where: { id } });
-
-  return NextResponse.json({ success: true });
 }

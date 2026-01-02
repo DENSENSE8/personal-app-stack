@@ -1,68 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-export async function GET(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(req.url);
-  const type = searchParams.get("type");
-
-  const userId = session.user.id === "admin" ? undefined : session.user.id;
-
-  const folders = await prisma.folder.findMany({
-    where: {
-      ...(userId && { userId }),
-      ...(type && { type }),
-    },
-    orderBy: { name: "asc" },
+// Get or create admin user
+async function getAdminUser() {
+  let user = await prisma.user.findFirst({
+    where: { email: "admin@michaelgarisek.com" },
   });
+  
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email: "admin@michaelgarisek.com",
+        password: "admin",
+        name: "Michael Garisek",
+      },
+    });
+  }
+  
+  return user;
+}
 
-  return NextResponse.json(folders);
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const type = searchParams.get("type");
+
+    const user = await getAdminUser();
+
+    const folders = await prisma.folder.findMany({
+      where: {
+        userId: user.id,
+        ...(type && { type }),
+      },
+      orderBy: { name: "asc" },
+    });
+
+    return NextResponse.json(folders);
+  } catch (error) {
+    console.error("Error fetching folders:", error);
+    return NextResponse.json({ error: "Failed to fetch folders" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const { name, type, parentId } = await req.json();
 
-  const { name, type, parentId } = await req.json();
-
-  if (!name || !type) {
-    return NextResponse.json({ error: "Name and type are required" }, { status: 400 });
-  }
-
-  let userId = session.user.id;
-  
-  if (userId === "admin") {
-    const adminUser = await prisma.user.findFirst();
-    if (!adminUser) {
-      const newUser = await prisma.user.create({
-        data: {
-          email: "admin@michaelgarisek.com",
-          password: "admin",
-          name: "Admin",
-        },
-      });
-      userId = newUser.id;
-    } else {
-      userId = adminUser.id;
+    if (!name || !type) {
+      return NextResponse.json({ error: "Name and type are required" }, { status: 400 });
     }
+
+    const user = await getAdminUser();
+
+    const folder = await prisma.folder.create({
+      data: {
+        name,
+        type,
+        parentId: parentId || null,
+        userId: user.id,
+      },
+    });
+
+    return NextResponse.json(folder, { status: 201 });
+  } catch (error) {
+    console.error("Error creating folder:", error);
+    return NextResponse.json({ error: "Failed to create folder" }, { status: 500 });
   }
-
-  const folder = await prisma.folder.create({
-    data: {
-      name,
-      type,
-      parentId: parentId || null,
-      userId,
-    },
-  });
-
-  return NextResponse.json(folder, { status: 201 });
 }
-

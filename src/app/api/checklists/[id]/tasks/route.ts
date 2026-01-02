@@ -1,44 +1,27 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { z } from "zod";
-
-const createTaskSchema = z.object({
-  description: z.string().min(1),
-  priority: z.number().optional(),
-});
 
 export async function POST(
-  req: Request,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { id } = await params;
-
-  const checklist = await prisma.checklist.findUnique({
-    where: { id },
-  });
-
-  if (!checklist) {
-    return NextResponse.json({ error: "Checklist not found" }, { status: 404 });
-  }
-
   try {
-    const body = await req.json();
-    const parsed = createTaskSchema.safeParse(body);
+    const { id } = await params;
+    const { text, description } = await req.json();
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: parsed.error.flatten() },
-        { status: 400 }
-      );
+    const itemText = text || description;
+
+    if (!itemText) {
+      return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
-    const { description, priority } = parsed.data;
+    const checklist = await prisma.checklist.findUnique({
+      where: { id },
+    });
+
+    if (!checklist) {
+      return NextResponse.json({ error: "Checklist not found" }, { status: 404 });
+    }
 
     const existingCount = await prisma.checklistItem.count({
       where: { checklistId: id },
@@ -47,17 +30,14 @@ export async function POST(
     const task = await prisma.checklistItem.create({
       data: {
         checklistId: id,
-        text: description,
-        priority: priority ?? existingCount,
+        text: itemText,
+        priority: existingCount,
       },
     });
 
-    return NextResponse.json(task);
+    return NextResponse.json(task, { status: 201 });
   } catch (error) {
-    console.error("Create task error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Error creating task:", error);
+    return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
   }
 }

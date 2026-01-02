@@ -1,136 +1,75 @@
-import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { z } from "zod";
 
-const createChecklistSchema = z.object({
-  title: z.string().min(1),
-  date: z.string().optional(),
-  folderId: z.string().optional().nullable(),
-  tasks: z.array(z.object({
-    description: z.string().min(1),
-    priority: z.number().optional(),
-    reminderDate: z.string().optional(),
-  })).optional(),
-});
-
-export async function GET(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(req.url);
-  const date = searchParams.get("date");
-  const folderId = searchParams.get("folderId");
-
-  const userId = session.user.id === "admin" ? undefined : session.user.id;
-
-  const where: {
-    userId?: string;
-    folderId?: string | null;
-    date?: { gte: Date; lt: Date };
-  } = {};
-
-  if (userId) {
-    where.userId = userId;
-  }
-
-  if (folderId) {
-    where.folderId = folderId;
-  }
-
-  if (date) {
-    const startDate = new Date(date);
-    const endDate = new Date(date);
-    endDate.setDate(endDate.getDate() + 1);
-    where.date = { gte: startDate, lt: endDate };
-  }
-
-  const checklists = await prisma.checklist.findMany({
-    where,
-    include: {
-      tasks: {
-        orderBy: { priority: "asc" },
-      },
-    },
-    orderBy: { createdAt: "desc" },
+async function getAdminUser() {
+  let user = await prisma.user.findFirst({
+    where: { email: "admin@michaelgarisek.com" },
   });
-
-  const mapped = checklists.map((c) => ({
-    ...c,
-    tasks: c.tasks.map((t) => ({
-      id: t.id,
-      text: t.text,
-      completed: t.completed,
-      completedAt: t.completedAt?.toISOString() || null,
-      priority: t.priority,
-      fileUrl: t.fileUrl,
-    })),
-  }));
-
-  return NextResponse.json(mapped);
+  
+  if (!user) {
+    user = await prisma.user.create({
+      data: {
+        email: "admin@michaelgarisek.com",
+        password: "admin",
+        name: "Michael Garisek",
+      },
+    });
+  }
+  
+  return user;
 }
 
-export async function POST(req: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
+export async function GET(req: NextRequest) {
   try {
-    const body = await req.json();
-    const parsed = createChecklistSchema.safeParse(body);
+    const { searchParams } = new URL(req.url);
+    const folderId = searchParams.get("folderId");
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        { error: "Invalid input", details: parsed.error.flatten() },
-        { status: 400 }
-      );
+    const user = await getAdminUser();
+
+    const checklists = await prisma.checklist.findMany({
+      where: {
+        userId: user.id,
+        ...(folderId && { folderId }),
+      },
+      include: {
+        tasks: {
+          orderBy: { priority: "asc" },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(checklists);
+  } catch (error) {
+    console.error("Error fetching checklists:", error);
+    return NextResponse.json({ error: "Failed to fetch checklists" }, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { title, folderId } = await req.json();
+
+    if (!title) {
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    const { title, date, folderId, tasks } = parsed.data;
-
-    let userId = session.user.id;
-
-    if (userId === "admin") {
-      const adminUser = await prisma.user.findFirst();
-      if (!adminUser) {
-        const newUser = await prisma.user.create({
-          data: {
-            email: "admin@michaelgarisek.com",
-            password: "admin",
-            name: "Admin",
-          },
-        });
-        userId = newUser.id;
-      } else {
-        userId = adminUser.id;
-      }
-    }
+    const user = await getAdminUser();
 
     const checklist = await prisma.checklist.create({
       data: {
-        userId,
         title,
+        userId: user.id,
         folderId: folderId || null,
-        date: date ? new Date(date) : new Date(),
-        tasks: tasks ? {
-          create: tasks.map((t, index) => ({
-            text: t.description,
-            priority: t.priority ?? index,
-          })),
-        } : undefined,
       },
-      include: { tasks: true },
+      include: {
+        tasks: true,
+      },
     });
 
-    return NextResponse.json(checklist);
+    return NextResponse.json(checklist, { status: 201 });
   } catch (error) {
-    console.error("Create checklist error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error("Error creating checklist:", error);
+    return NextResponse.json({ error: "Failed to create checklist" }, { status: 500 });
   }
 }
