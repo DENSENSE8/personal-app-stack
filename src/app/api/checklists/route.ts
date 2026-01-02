@@ -1,39 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-async function getAdminUser() {
-  let user = await prisma.user.findFirst({
-    where: { email: "admin@michaelgarisek.com" },
-  });
-  
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: "admin@michaelgarisek.com",
-        password: "admin",
-        name: "Michael Garisek",
-      },
-    });
-  }
-  
-  return user;
-}
-
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const folderId = searchParams.get("folderId");
 
-    const user = await getAdminUser();
-
     const checklists = await prisma.checklist.findMany({
       where: {
-        userId: user.id,
         ...(folderId && { folderId }),
       },
       include: {
-        tasks: {
-          orderBy: { priority: "asc" },
+        items: {
+          orderBy: { position: "asc" },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -54,16 +33,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    const user = await getAdminUser();
-
     const checklist = await prisma.checklist.create({
       data: {
         title,
-        userId: user.id,
         folderId: folderId || null,
       },
       include: {
-        tasks: true,
+        items: true,
       },
     });
 

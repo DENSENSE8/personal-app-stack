@@ -21,15 +21,17 @@ export async function POST(
       return NextResponse.json({ error: "Reminder not found" }, { status: 404 });
     }
 
-    const existingCount = await prisma.reminderItem.count({
+    // Get the highest position
+    const lastItem = await prisma.reminderItem.findFirst({
       where: { reminderId: id },
+      orderBy: { position: "desc" },
     });
 
     const item = await prisma.reminderItem.create({
       data: {
         reminderId: id,
         text,
-        priority: existingCount,
+        position: lastItem ? lastItem.position + 1 : 0,
       },
     });
 

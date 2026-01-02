@@ -17,39 +17,39 @@ interface FolderType {
 interface ChecklistItemType {
   id: string;
   text: string;
-  completed: boolean;
+  checked: boolean;
   completedAt: string | null;
   fileUrl: string | null;
+  position: number;
 }
 
 interface ChecklistType {
   id: string;
   title: string;
   folderId: string | null;
-  tasks: ChecklistItemType[];
+  items: ChecklistItemType[];
 }
 
 interface ReminderItemType {
   id: string;
   text: string;
-  completed: boolean;
+  checked: boolean;
   completedAt: string | null;
   fileUrl: string | null;
+  position: number;
 }
 
 interface ReminderType {
   id: string;
   title: string;
   folderId: string | null;
-  dueDate: string | null;
   items: ReminderItemType[];
 }
 
-interface RecipeStepType {
+interface EmbeddedChecklistType {
   id: string;
-  text: string;
-  completed: boolean;
-  order: number;
+  title: string;
+  items: ChecklistItemType[];
 }
 
 interface RecipeType {
@@ -57,8 +57,8 @@ interface RecipeType {
   title: string;
   description: string | null;
   folderId: string | null;
-  imageUrl: string | null;
-  steps: RecipeStepType[];
+  fileUrl: string | null;
+  embeddedChecklist: EmbeddedChecklistType | null;
 }
 
 // Icons as inline SVGs
@@ -354,12 +354,12 @@ export default function App() {
     }
   }
 
-  async function toggleChecklistItem(checklistId: string, itemId: string, completed: boolean) {
+  async function toggleChecklistItem(checklistId: string, itemId: string, checked: boolean) {
     try {
-      await fetch(`/api/checklists/${checklistId}/tasks/${itemId}`, {
+      await fetch(`/api/checklists/${checklistId}/items/${itemId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: !completed }),
+        body: JSON.stringify({ checked: !checked }),
       });
       fetchItems();
     } catch (error) {
@@ -367,12 +367,12 @@ export default function App() {
     }
   }
 
-  async function toggleReminderItem(reminderId: string, itemId: string, completed: boolean) {
+  async function toggleReminderItem(reminderId: string, itemId: string, checked: boolean) {
     try {
       await fetch(`/api/reminders/${reminderId}/items/${itemId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ checked: !completed }),
+        body: JSON.stringify({ checked: !checked }),
       });
       fetchItems();
     } catch (error) {
@@ -386,13 +386,13 @@ export default function App() {
 
     try {
       const endpoint = type === "checklist" 
-        ? `/api/checklists/${parentId}/tasks`
+        ? `/api/checklists/${parentId}/items`
         : `/api/reminders/${parentId}/items`;
       
       await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, description: text }),
+        body: JSON.stringify({ text }),
       });
       fetchItems();
     } catch (error) {
@@ -419,12 +419,12 @@ export default function App() {
       const checklist = checklists.find(c => c.id === id);
       if (!checklist) return;
       
-      for (const task of checklist.tasks) {
-        if (task.completed) {
-          await fetch(`/api/checklists/${id}/tasks/${task.id}`, {
+      for (const task of checklist.items) {
+        if (task.checked) {
+          await fetch(`/api/checklists/${id}/items/${task.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ completed: false }),
+            body: JSON.stringify({ checked: false }),
           });
         }
       }
@@ -723,17 +723,17 @@ export default function App() {
                   </div>
 
                   {/* Sub-items for Checklists */}
-                  {view === "checklists" && (item as ChecklistType).tasks && (
+                  {view === "checklists" && (item as ChecklistType).items && (
                     <div style={styles.subItemsList}>
-                      {(item as ChecklistType).tasks.map((task) => (
+                      {(item as ChecklistType).items.map((task) => (
                         <div key={task.id} style={styles.subItem}>
                           <button
-                            onClick={() => toggleChecklistItem(item.id, task.id, task.completed)}
-                            style={{ ...styles.checkbox, background: task.completed ? "linear-gradient(135deg, #059669, #0d9488)" : "#fff" }}
+                            onClick={() => toggleChecklistItem(item.id, task.id, task.checked)}
+                            style={{ ...styles.checkbox, background: task.checked ? "linear-gradient(135deg, #059669, #0d9488)" : "#fff" }}
                           >
-                            {task.completed && Icons.check}
+                            {task.checked && Icons.check}
                           </button>
-                          <span style={{ ...styles.subItemText, textDecoration: task.completed ? "line-through" : "none", color: task.completed ? "#9ca3af" : "#374151" }}>
+                          <span style={{ ...styles.subItemText, textDecoration: task.checked ? "line-through" : "none", color: task.checked ? "#9ca3af" : "#374151" }}>
                             {task.text}
                           </span>
                           {task.completedAt && (
@@ -765,12 +765,12 @@ export default function App() {
                       {(item as ReminderType).items.map((ri) => (
                         <div key={ri.id} style={styles.subItem}>
                           <button
-                            onClick={() => toggleReminderItem(item.id, ri.id, ri.completed)}
-                            style={{ ...styles.checkbox, background: ri.completed ? "linear-gradient(135deg, #059669, #0d9488)" : "#fff" }}
+                            onClick={() => toggleReminderItem(item.id, ri.id, ri.checked)}
+                            style={{ ...styles.checkbox, background: ri.checked ? "linear-gradient(135deg, #059669, #0d9488)" : "#fff" }}
                           >
-                            {ri.completed && Icons.check}
+                            {ri.checked && Icons.check}
                           </button>
-                          <span style={{ ...styles.subItemText, textDecoration: ri.completed ? "line-through" : "none", color: ri.completed ? "#9ca3af" : "#374151" }}>
+                          <span style={{ ...styles.subItemText, textDecoration: ri.checked ? "line-through" : "none", color: ri.checked ? "#9ca3af" : "#374151" }}>
                             {ri.text}
                           </span>
                           {ri.completedAt && (

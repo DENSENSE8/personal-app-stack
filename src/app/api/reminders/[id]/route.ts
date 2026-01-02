@@ -12,7 +12,7 @@ export async function GET(
       where: { id },
       include: {
         items: {
-          orderBy: { priority: "asc" },
+          orderBy: { position: "asc" },
         },
       },
     });
@@ -52,14 +52,13 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { title, folderId, dueDate } = await req.json();
+    const { title, folderId } = await req.json();
 
     const reminder = await prisma.reminder.update({
       where: { id },
       data: {
         ...(title !== undefined && { title }),
         ...(folderId !== undefined && { folderId }),
-        ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
       },
       include: {
         items: true,

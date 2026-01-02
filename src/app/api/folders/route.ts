@@ -1,36 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
-// Get or create admin user
-async function getAdminUser() {
-  let user = await prisma.user.findFirst({
-    where: { email: "admin@michaelgarisek.com" },
-  });
-  
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        email: "admin@michaelgarisek.com",
-        password: "admin",
-        name: "Michael Garisek",
-      },
-    });
-  }
-  
-  return user;
-}
-
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
 
-    const user = await getAdminUser();
-
     const folders = await prisma.folder.findMany({
       where: {
-        userId: user.id,
         ...(type && { type }),
+      },
+      include: {
+        children: true,
       },
       orderBy: { name: "asc" },
     });
@@ -50,14 +31,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Name and type are required" }, { status: 400 });
     }
 
-    const user = await getAdminUser();
-
     const folder = await prisma.folder.create({
       data: {
         name,
         type,
         parentId: parentId || null,
-        userId: user.id,
       },
     });
 

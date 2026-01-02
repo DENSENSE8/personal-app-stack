@@ -7,11 +7,9 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const { text, description } = await req.json();
+    const { text } = await req.json();
 
-    const itemText = text || description;
-
-    if (!itemText) {
+    if (!text) {
       return NextResponse.json({ error: "Text is required" }, { status: 400 });
     }
 
@@ -23,21 +21,24 @@ export async function POST(
       return NextResponse.json({ error: "Checklist not found" }, { status: 404 });
     }
 
-    const existingCount = await prisma.checklistItem.count({
+    // Get the highest position
+    const lastItem = await prisma.checklistItem.findFirst({
       where: { checklistId: id },
+      orderBy: { position: "desc" },
     });
 
-    const task = await prisma.checklistItem.create({
+    const item = await prisma.checklistItem.create({
       data: {
         checklistId: id,
-        text: itemText,
-        priority: existingCount,
+        text,
+        position: lastItem ? lastItem.position + 1 : 0,
       },
     });
 
-    return NextResponse.json(task, { status: 201 });
+    return NextResponse.json(item, { status: 201 });
   } catch (error) {
-    console.error("Error creating task:", error);
-    return NextResponse.json({ error: "Failed to create task" }, { status: 500 });
+    console.error("Error creating checklist item:", error);
+    return NextResponse.json({ error: "Failed to create checklist item" }, { status: 500 });
   }
 }
+

@@ -11,17 +11,11 @@ export async function GET(
     const recipe = await prisma.recipe.findUnique({
       where: { id },
       include: {
-        steps: {
-          orderBy: { order: "asc" },
-        },
-        ingredients: {
+        embeddedChecklist: {
           include: {
-            ingredient: true,
-          },
-        },
-        tags: {
-          include: {
-            tag: true,
+            items: {
+              orderBy: { position: "asc" },
+            },
           },
         },
       },
@@ -45,9 +39,23 @@ export async function DELETE(
   try {
     const { id } = await params;
 
+    // Get recipe to find embedded checklist
+    const recipe = await prisma.recipe.findUnique({
+      where: { id },
+      select: { embeddedChecklistId: true },
+    });
+
+    // Delete recipe first
     await prisma.recipe.delete({
       where: { id },
     });
+
+    // Delete embedded checklist if exists
+    if (recipe?.embeddedChecklistId) {
+      await prisma.checklist.delete({
+        where: { id: recipe.embeddedChecklistId },
+      }).catch(() => {}); // Ignore if already deleted
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -62,7 +70,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { title, description, folderId, prepTime, servings, imageUrl } = await req.json();
+    const { title, description, folderId, fileUrl } = await req.json();
 
     const recipe = await prisma.recipe.update({
       where: { id },
@@ -70,20 +78,12 @@ export async function PUT(
         ...(title !== undefined && { title }),
         ...(description !== undefined && { description }),
         ...(folderId !== undefined && { folderId }),
-        ...(prepTime !== undefined && { prepTime }),
-        ...(servings !== undefined && { servings }),
-        ...(imageUrl !== undefined && { imageUrl }),
+        ...(fileUrl !== undefined && { fileUrl }),
       },
       include: {
-        steps: true,
-        ingredients: {
+        embeddedChecklist: {
           include: {
-            ingredient: true,
-          },
-        },
-        tags: {
-          include: {
-            tag: true,
+            items: true,
           },
         },
       },

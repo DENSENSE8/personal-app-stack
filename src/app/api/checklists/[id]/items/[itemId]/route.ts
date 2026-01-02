@@ -9,7 +9,7 @@ export async function PUT(
     const { itemId } = await params;
     const { text, checked, position } = await req.json();
 
-    const item = await prisma.reminderItem.update({
+    const item = await prisma.checklistItem.update({
       where: { id: itemId },
       data: {
         ...(text !== undefined && { text }),
@@ -23,8 +23,8 @@ export async function PUT(
 
     return NextResponse.json(item);
   } catch (error) {
-    console.error("Error updating reminder item:", error);
-    return NextResponse.json({ error: "Failed to update reminder item" }, { status: 500 });
+    console.error("Error updating checklist item:", error);
+    return NextResponse.json({ error: "Failed to update checklist item" }, { status: 500 });
   }
 }
 
@@ -35,13 +35,14 @@ export async function DELETE(
   try {
     const { itemId } = await params;
 
-    await prisma.reminderItem.delete({
+    await prisma.checklistItem.delete({
       where: { id: itemId },
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting reminder item:", error);
-    return NextResponse.json({ error: "Failed to delete reminder item" }, { status: 500 });
+    console.error("Error deleting checklist item:", error);
+    return NextResponse.json({ error: "Failed to delete checklist item" }, { status: 500 });
   }
 }
+

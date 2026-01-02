@@ -11,8 +11,8 @@ export async function GET(
     const checklist = await prisma.checklist.findUnique({
       where: { id },
       include: {
-        tasks: {
-          orderBy: { priority: "asc" },
+        items: {
+          orderBy: { position: "asc" },
         },
       },
     });
@@ -61,7 +61,7 @@ export async function PUT(
         ...(folderId !== undefined && { folderId }),
       },
       include: {
-        tasks: true,
+        items: true,
       },
     });
 
