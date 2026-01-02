@@ -681,7 +681,7 @@ export default function App() {
             {Icons.back}
             <span>Dashboard</span>
           </button>
-          <h1 style={styles.sectionTitle}>{currentTitle}</h1>
+          <h1 style={styles.sectionPageTitle}>{currentTitle}</h1>
           <button onClick={handleLogout} style={styles.headerLogout}>
             {Icons.logout}
           </button>
@@ -1477,7 +1477,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
     cursor: "pointer",
   },
-  sectionTitle: {
+  sectionPageTitle: {
     fontSize: 24,
     fontWeight: 700,
     background: "linear-gradient(135deg, #059669, #0d9488)",
