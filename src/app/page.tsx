@@ -288,7 +288,7 @@ export default function App() {
     if (!type) return;
 
     try {
-      if (view === "reminders") {
+      if (view === "reminders" && !selectedFolderId) {
         // Fetch all for consolidated view
         const [remRes, checkRes, recRes] = await Promise.all([
           fetch("/api/reminders"),
@@ -837,7 +837,7 @@ export default function App() {
         </header>
 
         <div style={styles.sectionContent}>
-          {view === "reminders" ? (
+          {view === "reminders" && !selectedFolderId ? (
             <div style={styles.consolidatedGrid}>
               {/* Checklists - Left */}
               <div style={styles.col}>
