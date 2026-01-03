@@ -25,11 +25,14 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { name } = await req.json();
+    const { name, parentId } = await req.json();
 
     const folder = await prisma.folder.update({
       where: { id },
-      data: { name },
+      data: { 
+        ...(name !== undefined && { name }),
+        ...(parentId !== undefined && { parentId }),
+      },
     });
 
     return NextResponse.json(folder);
