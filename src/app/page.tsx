@@ -384,7 +384,7 @@ export default function App() {
         console.log("Folder created:", data);
         setNewFolderName("");
         setShowNewFolder(false);
-        await fetchFolders();
+        setSelectedFolderId(data.id); await fetchFolders();
       } else {
         const errorData = await res.json();
         console.error("Failed to create folder:", errorData);
@@ -1418,7 +1418,7 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#f9fafb",
     color: "#1f2937",
     outline: "none",
-    transition: "all 0.2s",
+    transition: "all 0.2s", width: "100%", textAlign: "left",
   },
   loginButton: {
     padding: 16,
@@ -1496,7 +1496,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     fontWeight: 600,
     cursor: "pointer",
-    transition: "all 0.2s",
+    transition: "all 0.2s", width: "100%", textAlign: "left",
   },
   dashMain: {
     maxWidth: 1000,
@@ -1582,7 +1582,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#374151",
     cursor: "pointer",
     boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-    transition: "all 0.2s",
+    transition: "all 0.2s", width: "100%", textAlign: "left",
   },
   fabButton: {
     width: 60,
@@ -1658,7 +1658,7 @@ const styles: Record<string, React.CSSProperties> = {
     gap: 4,
   },
   folderItem: {
-    flex: 1,
+    
     display: "flex",
     alignItems: "center",
     gap: 12,
@@ -1668,7 +1668,7 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14,
     fontWeight: 500,
     cursor: "pointer",
-    transition: "all 0.2s",
+    transition: "all 0.2s", width: "100%", textAlign: "left",
   },
   folderDeleteBtn: {
     width: 32,
@@ -1802,7 +1802,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sectionContent: {
     padding: 32,
-    maxWidth: 900,
+    maxWidth: 1400,
     margin: "0 auto",
   },
   contentHeader: {
@@ -1853,7 +1853,7 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 16,
     padding: 24,
     border: "1px solid #e5e7eb",
-    transition: "all 0.2s",
+    transition: "all 0.2s", width: "100%", textAlign: "left",
   },
   itemHeader: {
     display: "flex",
@@ -1938,14 +1938,14 @@ const styles: Record<string, React.CSSProperties> = {
   },
   consolidatedGrid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+    gridTemplateColumns: "repeat(3, 1fr)",
     gap: 32,
     alignItems: "start",
   },
   col: {
     display: "flex",
     flexDirection: "column",
-    gap: 16,
+    gap: 16, minWidth: 0,
   },
   colTitle: {
     fontSize: 18,
