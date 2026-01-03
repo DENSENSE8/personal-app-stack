@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import "./globals.css";
 
@@ -218,6 +218,7 @@ export default function App() {
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [editingSubId, setEditingSubId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const folderMapRef = useRef<Record<string, FolderType>>({});
 
   // Check auth and theme on mount
   useEffect(() => {
@@ -277,6 +278,9 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setFolders(data);
+        const map: Record<string, FolderType> = {};
+        data.forEach((f: FolderType) => { map[f.id] = f; });
+        folderMapRef.current = map;
       }
     } catch (error) {
       console.error("Error fetching folders:", error);
@@ -289,29 +293,17 @@ export default function App() {
     if (!type) return;
 
     try {
-      if (view === "reminders" && !selectedFolderId) {
-        // Fetch all for consolidated view
-        const [remRes, checkRes, recRes] = await Promise.all([
-          fetch("/api/reminders"),
-          fetch("/api/checklists"),
-          fetch("/api/recipes"),
-        ]);
-        if (remRes.ok) setReminders(await remRes.json());
-        if (checkRes.ok) setChecklists(await checkRes.json());
-        if (recRes.ok) setRecipes(await recRes.json());
-      } else {
-        const endpoint = type === "recipe" ? "recipes" : type === "checklist" ? "checklists" : "reminders";
-        const url = selectedFolderId 
-          ? `/api/${endpoint}?folderId=${selectedFolderId}`
-          : `/api/${endpoint}`;
-        
-        const res = await fetch(url);
-        if (res.ok) {
-          const data = await res.json();
-          if (type === "recipe") setRecipes(data);
-          else if (type === "checklist") setChecklists(data);
-          else setReminders(data);
-        }
+      const endpoint = type === "recipe" ? "recipes" : type === "checklist" ? "checklists" : "reminders";
+      const url = selectedFolderId 
+        ? `/api/${endpoint}?folderId=${selectedFolderId}`
+        : `/api/${endpoint}`;
+      
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (type === "recipe") setRecipes(data);
+        else if (type === "checklist") setChecklists(data);
+        else setReminders(data);
       }
     } catch (error) {
       console.error("Error fetching items:", error);
@@ -423,6 +415,21 @@ export default function App() {
       }
     } catch (error) {
       console.error("Error updating folder:", error);
+    }
+  }
+
+  async function moveFolder(folderId: string, newParentId: string | null) {
+    if (folderId === newParentId) return;
+    try {
+      await fetch(`/api/folders/${folderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ parentId: newParentId }),
+      });
+      setSelectedFolderId(newParentId);
+      fetchFolders();
+    } catch (error) {
+      console.error("Error moving folder:", error);
     }
   }
 
@@ -779,28 +786,57 @@ export default function App() {
   const currentType = getCurrentType();
   const currentTitle = view === "recipes" ? "Recipes" : view === "checklists" ? "Checklists" : "Reminders";
   const currentItems = view === "recipes" ? recipes : view === "checklists" ? checklists : reminders;
+  const folderPath = useMemo(() => {
+    const path: FolderType[] = [];
+    if (selectedFolderId && folderMapRef.current[selectedFolderId]) {
+      let current: FolderType | undefined = folderMapRef.current[selectedFolderId];
+      while (current) {
+        path.unshift(current);
+        current = current.parentId ? folderMapRef.current[current.parentId] : undefined;
+      }
+    }
+    return path;
+  }, [selectedFolderId]);
 
   return (
     <div style={{ ...styles.sectionContainer, background: theme.bgSecondary }}>
       {/* Sidebar */}
       <div style={{ ...styles.sidebar, transform: sidebarOpen ? "translateX(0)" : "translateX(-100%)", background: theme.cardBg, borderColor: theme.border }}>
         <div style={{ ...styles.sidebarHeader, borderColor: theme.border }}>
-          <h2 style={{ ...styles.sidebarTitle, color: theme.text }}>Folders</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button 
+              onClick={() => setSelectedFolderId(null)} 
+              style={{ ...styles.navIconBtn, color: !selectedFolderId ? theme.primary : theme.textSecondary }} 
+              title="Root"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+            </button>
+            <button
+              onClick={() => {
+                if (selectedFolderId && folderMapRef.current[selectedFolderId]?.parentId) {
+                  setSelectedFolderId(folderMapRef.current[selectedFolderId].parentId);
+                } else {
+                  setSelectedFolderId(null);
+                }
+              }}
+              style={{ ...styles.navIconBtn, color: theme.textSecondary }}
+              title="Back"
+            >
+              {Icons.back}
+            </button>
+          </div>
           <button onClick={() => setShowNewFolder(true)} style={styles.addFolderBtn}>
             {Icons.plus}
           </button>
         </div>
 
         <div style={styles.folderList}>
-          <button
-            onClick={() => setSelectedFolderId(null)}
-            style={{ ...styles.folderItem, background: !selectedFolderId ? "linear-gradient(135deg, #059669, #0d9488)" : "transparent", color: !selectedFolderId ? "#fff" : theme.text }}
-          >
-            {Icons.folderOpen}
-            <span>All {currentTitle}</span>
-          </button>
-          
-          {folders.map((folder) => (
+          {folders
+            .filter(f => f.parentId === selectedFolderId)
+            .map((folder) => (
             <div key={folder.id} style={styles.folderItemWrap}>
               {editingFolderId === folder.id ? (
                 <input
@@ -813,26 +849,65 @@ export default function App() {
                     if (e.key === "Escape") setEditingFolderId(null);
                   }}
                   autoFocus
-                  style={{ ...styles.miniInput, margin: 0, padding: "8px 12px" }}
+                  style={{ ...styles.miniInput, margin: 0, padding: "8px 12px", color: "#fff", background: theme.inputBg }}
                 />
               ) : (
                 <button
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("text/plain", folder.id);
+                  }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    const draggedId = e.dataTransfer.getData("text/plain");
+                    if (draggedId && draggedId !== folder.id) {
+                      moveFolder(draggedId, folder.id);
+                    }
+                  }}
                   onClick={() => setSelectedFolderId(folder.id)}
                   onDoubleClick={() => {
                     setEditingFolderId(folder.id);
                     setEditingFolderName(folder.name);
                   }}
-                  style={{ ...styles.folderItem, background: selectedFolderId === folder.id ? "linear-gradient(135deg, #059669, #0d9488)" : "transparent", color: selectedFolderId === folder.id ? "#fff" : theme.text }}
+                  style={{ 
+                    ...styles.folderItem, 
+                    background: selectedFolderId === folder.id ? "linear-gradient(135deg, #059669, #0d9488)" : "transparent", 
+                    color: selectedFolderId === folder.id ? "#fff" : theme.text, 
+                    width: "100%", 
+                    textAlign: "left" 
+                  }}
                 >
                   {Icons.folder}
                   <span>{folder.name}</span>
                 </button>
               )}
-              <button onClick={() => deleteFolder(folder.id)} style={{ ...styles.folderDeleteBtn, color: theme.textMuted }}>
-                {Icons.trash}
-              </button>
             </div>
           ))}
+        </div>
+
+        {/* Path Bar Footer */}
+        <div style={styles.sidebarFooter}>
+          <div style={styles.pathBar}>
+            <span style={{ cursor: "pointer" }} onClick={() => setSelectedFolderId(null)}>Root</span>
+            {folderPath.map((f, i) => (
+              <span key={f.id} style={styles.pathItem}>
+                <span style={{ opacity: 0.5 }}>/</span>
+                <span 
+                  style={i === folderPath.length - 1 ? styles.pathCurrent : { cursor: "pointer" }}
+                  onClick={() => setSelectedFolderId(f.id)}
+                >
+                  {f.name}
+                </span>
+              </span>
+            ))}
+          </div>
+          {selectedFolderId && (
+            <button onClick={() => deleteFolder(selectedFolderId)} style={styles.deleteFolderBtn}>
+              {Icons.trash}
+              <span>Delete Folder</span>
+            </button>
+          )}
         </div>
 
         {/* New Folder Modal */}
@@ -848,14 +923,31 @@ export default function App() {
             />
             <div style={styles.miniModalActions}>
               <button onClick={() => setShowNewFolder(false)} style={{ ...styles.miniCancelBtn, background: theme.bgTertiary, color: theme.textSecondary }}>Cancel</button>
-              <button onClick={createFolder} style={styles.miniConfirmBtn}>Create</button>
+              <button onClick={() => {
+                const trimmedName = newFolderName.trim();
+                if (!trimmedName) return;
+                const type = getCurrentType();
+                fetch("/api/folders", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ name: trimmedName, type, parentId: selectedFolderId }),
+                }).then(res => res.json()).then(data => {
+                  setNewFolderName("");
+                  setShowNewFolder(false);
+                  setSelectedFolderId(data.id);
+                  fetchFolders();
+                });
+              }} style={styles.miniConfirmBtn}>Create</button>
             </div>
           </div>
         )}
       </div>
 
       {/* Sidebar Toggle */}
-      <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ ...styles.sidebarToggle, left: sidebarOpen ? 260 : 0, background: theme.cardBg, border: `1px solid ${theme.border}`, color: theme.textSecondary }}>
+      <button 
+        onClick={() => setSidebarOpen(!sidebarOpen)} 
+        style={{ ...styles.sidebarToggle, left: sidebarOpen ? 24 : 24, bottom: 24, background: theme.cardBg, border: `1px solid ${theme.border}`, color: theme.textSecondary }}
+      >
         {sidebarOpen ? "‹" : "›"}
       </button>
 
@@ -878,243 +970,34 @@ export default function App() {
         </header>
 
         <div style={styles.sectionContent}>
-          {view === "reminders" && !selectedFolderId ? (
-            <div style={styles.consolidatedGrid}>
-              {/* Checklists - Left */}
-              <div style={styles.col}>
-                <h3 style={{ ...styles.colTitle, color: theme.text }}>Checklists</h3>
-                <div style={styles.itemsList}>
-                  {checklists.map((item) => (
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      key={item.id}
-                      style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
-                    >
-                      <div style={styles.itemHeader}>
-                        {editingItem === item.id ? (
-                          <input
-                            type="text"
-                            value={editingText}
-                            onChange={(e) => setEditingText(e.target.value)}
-                            onBlur={() => updateItemTitle(item.id, editingText)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") updateItemTitle(item.id, editingText);
-                              if (e.key === "Escape") setEditingItem(null);
-                            }}
-                            autoFocus
-                            style={{ ...styles.miniInput, margin: 0, fontSize: 16, fontWeight: 600 }}
-                          />
-                        ) : (
-                          <h3 
-                            style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}
-                            onDoubleClick={() => { setEditingItem(item.id); setEditingText(item.title); }}
-                          >
-                            {item.title}
-                          </h3>
-                        )}
-                        <div style={styles.itemActions}>
-                          <button onClick={() => resetChecklist(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: theme.textSecondary }} title="Reset">
-                            {Icons.reset}
-                          </button>
-                          <button onClick={() => deleteItem(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">
-                            {Icons.trash}
-                          </button>
-                        </div>
-                      </div>
-                      <div style={{ ...styles.subItemsList, borderColor: theme.borderLight }}>
-                        {item.items.map((task) => (
-                          <div key={task.id} style={styles.subItem}>
-                            <button
-                              onClick={() => toggleChecklistItem(item.id, task.id, task.checked)}
-                              style={{ ...styles.checkbox, width: 20, height: 20, background: task.checked ? "linear-gradient(135deg, #059669, #0d9488)" : theme.cardBg, border: `2px solid ${task.checked ? "transparent" : theme.border}` }}
-                            >
-                              {task.checked && Icons.check}
-                            </button>
-                            {editingSubId === task.id ? (
-                              <input
-                                type="text"
-                                value={editingText}
-                                onChange={(e) => setEditingText(e.target.value)}
-                                onBlur={() => updateSubItemText(item.id, task.id, editingText)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") updateSubItemText(item.id, task.id, editingText);
-                                  if (e.key === "Escape") setEditingSubId(null);
-                                }}
-                                autoFocus
-                                style={{ ...styles.miniInput, margin: 0, padding: "4px 8px", fontSize: 13 }}
-                              />
-                            ) : (
-                              <span 
-                                style={{ ...styles.subItemText, fontSize: 13, textDecoration: task.checked ? "line-through" : "none", color: task.checked ? theme.textMuted : theme.text }}
-                                onDoubleClick={() => { setEditingSubId(task.id); setEditingText(task.text); }}
-                              >
-                                {task.text}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
+          <div style={styles.contentHeader}>
+            <h2 style={{ ...styles.contentTitle, color: theme.text }}>
+              {selectedFolderId ? folders.find(f => f.id === selectedFolderId)?.name : `All ${currentTitle}`}
+            </h2>
+            <button onClick={() => setShowNewItem(true)} style={styles.addItemBtn}>
+              {Icons.plus}
+              <span>Add {view === "recipes" ? "Recipe" : view === "checklists" ? "Checklist" : "Reminder"}</span>
+            </button>
+          </div>
 
-              {/* Reminders - Middle */}
-              <div style={styles.col}>
-                <h3 style={{ ...styles.colTitle, color: theme.text }}>Reminders</h3>
-                <div style={styles.itemsList}>
-                  {reminders.map((item) => (
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      key={item.id}
-                      style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
-                    >
-                      <div style={styles.itemHeader}>
-                        {editingItem === item.id ? (
-                          <input
-                            type="text"
-                            value={editingText}
-                            onChange={(e) => setEditingText(e.target.value)}
-                            onBlur={() => updateItemTitle(item.id, editingText)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") updateItemTitle(item.id, editingText);
-                              if (e.key === "Escape") setEditingItem(null);
-                            }}
-                            autoFocus
-                            style={{ ...styles.miniInput, margin: 0, fontSize: 16, fontWeight: 600 }}
-                          />
-                        ) : (
-                          <h3 
-                            style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}
-                            onDoubleClick={() => { setEditingItem(item.id); setEditingText(item.title); }}
-                          >
-                            {item.title}
-                          </h3>
-                        )}
-                        <div style={styles.itemActions}>
-                          <button onClick={() => deleteItem(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">
-                            {Icons.trash}
-                          </button>
-                        </div>
-                      </div>
-                      <div style={{ ...styles.subItemsList, borderColor: theme.borderLight }}>
-                        {item.items.map((ri) => (
-                          <div key={ri.id} style={styles.subItem}>
-                            <button
-                              onClick={() => toggleReminderItem(item.id, ri.id, ri.checked)}
-                              style={{ ...styles.checkbox, width: 20, height: 20, background: ri.checked ? "linear-gradient(135deg, #059669, #0d9488)" : theme.cardBg, border: `2px solid ${ri.checked ? "transparent" : theme.border}` }}
-                            >
-                              {ri.checked && Icons.check}
-                            </button>
-                            {editingSubId === ri.id ? (
-                              <input
-                                type="text"
-                                value={editingText}
-                                onChange={(e) => setEditingText(e.target.value)}
-                                onBlur={() => updateSubItemText(item.id, ri.id, editingText)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") updateSubItemText(item.id, ri.id, editingText);
-                                  if (e.key === "Escape") setEditingSubId(null);
-                                }}
-                                autoFocus
-                                style={{ ...styles.miniInput, margin: 0, padding: "4px 8px", fontSize: 13 }}
-                              />
-                            ) : (
-                              <span 
-                                style={{ ...styles.subItemText, fontSize: 13, textDecoration: ri.checked ? "line-through" : "none", color: ri.checked ? theme.textMuted : theme.text }}
-                                onDoubleClick={() => { setEditingSubId(ri.id); setEditingText(ri.text); }}
-                              >
-                                {ri.text}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
+          {/* Items List */}
+          <div style={styles.itemsList}>
+            {currentItems.length === 0 ? (
+              <div style={{ ...styles.emptyState, background: theme.cardBg, borderColor: theme.border }}>
+                <span style={styles.emptyIcon}>📁</span>
+                <p style={{ color: theme.textSecondary }}>
+                  {view === "reminders" ? "Create a reminder first to see all reminders." : "No items yet. Create your first one!"}
+                </p>
               </div>
-
-              {/* Recipes - Right */}
-              <div style={styles.col}>
-                <h3 style={{ ...styles.colTitle, color: theme.text }}>Recipes</h3>
-                <div style={styles.itemsList}>
-                  {recipes.map((item) => (
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      key={item.id}
-                      style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
-                    >
-                      <div style={styles.itemHeader}>
-                        {editingItem === item.id ? (
-                          <input
-                            type="text"
-                            value={editingText}
-                            onChange={(e) => setEditingText(e.target.value)}
-                            onBlur={() => updateItemTitle(item.id, editingText)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") updateItemTitle(item.id, editingText);
-                              if (e.key === "Escape") setEditingItem(null);
-                            }}
-                            autoFocus
-                            style={{ ...styles.miniInput, margin: 0, fontSize: 16, fontWeight: 600 }}
-                          />
-                        ) : (
-                          <h3 
-                            style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}
-                            onDoubleClick={() => { setEditingItem(item.id); setEditingText(item.title); }}
-                          >
-                            {item.title}
-                          </h3>
-                        )}
-                        <div style={styles.itemActions}>
-                          <button onClick={() => deleteItem(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">
-                            {Icons.trash}
-                          </button>
-                        </div>
-                      </div>
-                      {item.description && (
-                        <p style={{ ...styles.recipeDesc, fontSize: 13, color: theme.textSecondary }}>{item.description}</p>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div style={styles.contentHeader}>
-                <h2 style={{ ...styles.contentTitle, color: theme.text }}>
-                  {selectedFolderId ? folders.find(f => f.id === selectedFolderId)?.name : `All ${currentTitle}`}
-                </h2>
-                <button onClick={() => setShowNewItem(true)} style={styles.addItemBtn}>
-                  {Icons.plus}
-                  <span>Add {view === "recipes" ? "Recipe" : view === "checklists" ? "Checklist" : "Reminder"}</span>
-                </button>
-              </div>
-
-              {/* Items List */}
-              <div style={styles.itemsList}>
-                {currentItems.length === 0 ? (
-                  <div style={{ ...styles.emptyState, background: theme.cardBg, borderColor: theme.border }}>
-                    <span style={styles.emptyIcon}>📁</span>
-                    <p style={{ color: theme.textSecondary }}>No items yet. Create your first one!</p>
-                  </div>
-                ) : (
-                  currentItems.map((item) => (
-                    <motion.div 
-                      layout
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      key={item.id} 
-                      style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
-                    >
+            ) : (
+              currentItems.map((item) => (
+                <motion.div 
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  key={item.id} 
+                  style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
+                >
                   <div style={styles.itemHeader}>
                     {editingItem === item.id ? (
                       <input
@@ -1127,7 +1010,7 @@ export default function App() {
                           if (e.key === "Escape") setEditingItem(null);
                         }}
                         autoFocus
-                        style={{ ...styles.miniInput, margin: 0, fontSize: 18, fontWeight: 600 }}
+                        style={{ ...styles.miniInput, margin: 0, fontSize: 18, fontWeight: 600, color: "#fff", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
                       />
                     ) : (
                       <h3 
@@ -1171,7 +1054,7 @@ export default function App() {
                                 if (e.key === "Escape") setEditingSubId(null);
                               }}
                               autoFocus
-                              style={{ ...styles.miniInput, margin: 0, padding: "4px 8px", fontSize: 14 }}
+                              style={{ ...styles.miniInput, margin: 0, padding: "4px 8px", fontSize: 14, color: "#fff", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
                             />
                           ) : (
                             <span 
@@ -1200,8 +1083,8 @@ export default function App() {
                             }
                           }}
                         />
-            </div>
-        </div>
+                      </div>
+                    </div>
                   )}
 
                   {/* Sub-items for Reminders */}
@@ -1226,7 +1109,7 @@ export default function App() {
                                 if (e.key === "Escape") setEditingSubId(null);
                               }}
                               autoFocus
-                              style={{ ...styles.miniInput, margin: 0, padding: "4px 8px", fontSize: 14 }}
+                              style={{ ...styles.miniInput, margin: 0, padding: "4px 8px", fontSize: 14, color: "#fff", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
                             />
                           ) : (
                             <span 
@@ -1241,7 +1124,7 @@ export default function App() {
                               {new Date(ri.completedAt).toLocaleDateString()} {new Date(ri.completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           )}
-        </div>
+                        </div>
                       ))}
                       <div style={styles.addSubItem}>
                         <input
@@ -1267,9 +1150,8 @@ export default function App() {
               ))
             )}
           </div>
-        </>
-      )}
-    </div>
+        </div>
+      </div>
 
     {/* New Item Modal */}
       <AnimatePresence>
@@ -1334,7 +1216,6 @@ export default function App() {
         </motion.button>
       </div>
     </div>
-  </div>
 );
 }
 
@@ -1350,6 +1231,18 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: 12,
     cursor: "pointer",
     transition: "all 0.2s ease",
+  },
+  navIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    border: "none",
+    background: "transparent",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    transition: "all 0.2s",
   },
   // Home
   homeContainer: {
@@ -1926,22 +1819,64 @@ const styles: Record<string, React.CSSProperties> = {
   },
   sidebarToggle: {
     position: "fixed",
-    top: "50%",
-    transform: "translateY(-50%)",
-    width: 24,
+    bottom: 24,
+    left: 24,
+    width: 48,
     height: 48,
     background: "#fff",
     border: "1px solid #e5e7eb",
-    borderLeft: "none",
-    borderRadius: "0 8px 8px 0",
+    borderRadius: "12px",
     cursor: "pointer",
-    zIndex: 51,
-    fontSize: 16,
+    zIndex: 100,
+    fontSize: 20,
     color: "#6b7280",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "left 0.3s ease",
+    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+    transition: "all 0.3s ease",
+  },
+  sidebarFooter: {
+    padding: "12px 16px",
+    borderTop: "1px solid #e5e7eb",
+    background: "rgba(255,255,255,0.05)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
+  pathBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+    fontSize: 11,
+    color: "#9ca3af",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  pathItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 4,
+  },
+  pathCurrent: {
+    color: "#059669",
+    fontWeight: 600,
+  },
+  deleteFolderBtn: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: "8px 12px",
+    background: "rgba(239, 68, 68, 0.1)",
+    border: "1px solid rgba(239, 68, 68, 0.2)",
+    borderRadius: 8,
+    color: "#ef4444",
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: "pointer",
+    transition: "all 0.2s",
   },
   sectionMain: {
     flex: 1,
