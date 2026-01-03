@@ -18,12 +18,8 @@ export async function GET(req: NextRequest) {
         }),
       },
       include: {
-        embeddedChecklist: {
-          include: {
-            items: {
-              orderBy: { position: "asc" },
-            },
-          },
+        blocks: {
+          orderBy: { position: "asc" },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -44,25 +40,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    // Create an embedded checklist for recipe steps
-    const embeddedChecklist = await prisma.checklist.create({
-      data: {
-        title: `${title} - Steps`,
-      },
-    });
-
     const recipe = await prisma.recipe.create({
       data: {
         title,
         description: description || null,
         folderId: folderId || null,
-        embeddedChecklistId: embeddedChecklist.id,
+        tags: [],
       },
       include: {
-        embeddedChecklist: {
-          include: {
-            items: true,
-          },
+        blocks: {
+          orderBy: { position: "asc" },
         },
       },
     });

@@ -11,12 +11,8 @@ export async function GET(
     const recipe = await prisma.recipe.findUnique({
       where: { id },
       include: {
-        embeddedChecklist: {
-          include: {
-            items: {
-              orderBy: { position: "asc" },
-            },
-          },
+        blocks: {
+          orderBy: { position: "asc" },
         },
       },
     });
@@ -39,23 +35,10 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Get recipe to find embedded checklist
-    const recipe = await prisma.recipe.findUnique({
-      where: { id },
-      select: { embeddedChecklistId: true },
-    });
-
-    // Delete recipe first
+    // Delete recipe (blocks will cascade delete automatically)
     await prisma.recipe.delete({
       where: { id },
     });
-
-    // Delete embedded checklist if exists
-    if (recipe?.embeddedChecklistId) {
-      await prisma.checklist.delete({
-        where: { id: recipe.embeddedChecklistId },
-      }).catch(() => {}); // Ignore if already deleted
-    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -70,7 +53,29 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { title, description, folderId, fileUrl } = await req.json();
+    const { title, description, folderId, coverImage, tags, prepTime, cookTime, servings, blocks } = await req.json();
+
+    // If blocks are provided, handle them separately
+    if (blocks !== undefined) {
+      // Delete all existing blocks
+      await prisma.recipeBlock.deleteMany({
+        where: { recipeId: id },
+      });
+
+      // Create new blocks
+      if (blocks.length > 0) {
+        await prisma.recipeBlock.createMany({
+          data: blocks.map((block: any) => ({
+            id: block.id.startsWith('temp-') ? undefined : block.id,
+            recipeId: id,
+            type: block.type,
+            content: block.content,
+            position: block.position,
+            metadata: block.metadata || {},
+          })),
+        });
+      }
+    }
 
     const recipe = await prisma.recipe.update({
       where: { id },
@@ -78,13 +83,15 @@ export async function PUT(
         ...(title !== undefined && { title }),
         ...(description !== undefined && { description }),
         ...(folderId !== undefined && { folderId }),
-        ...(fileUrl !== undefined && { fileUrl }),
+        ...(coverImage !== undefined && { coverImage }),
+        ...(tags !== undefined && { tags }),
+        ...(prepTime !== undefined && { prepTime }),
+        ...(cookTime !== undefined && { cookTime }),
+        ...(servings !== undefined && { servings }),
       },
       include: {
-        embeddedChecklist: {
-          include: {
-            items: true,
-          },
+        blocks: {
+          orderBy: { position: "asc" },
         },
       },
     });
