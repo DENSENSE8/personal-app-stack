@@ -216,6 +216,7 @@ export default function App() {
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
   const [editingItem, setEditingItem] = useState<string | null>(null);
+  const [editingSubId, setEditingSubId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
 
   // Check auth and theme on mount
@@ -508,6 +509,46 @@ export default function App() {
       fetchItems();
     } catch (error) {
       console.error("Error deleting item:", error);
+    }
+  }
+
+  async function updateItemTitle(id: string, newTitle: string) {
+    if (!newTitle.trim()) return;
+    const type = getCurrentType();
+    if (!type) return;
+    try {
+      const endpoint = type === "recipe" ? "recipes" : type === "checklist" ? "checklists" : "reminders";
+      const res = await fetch(`/api/${endpoint}/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTitle }),
+      });
+      if (res.ok) {
+        setEditingItem(null);
+        fetchItems();
+      }
+    } catch (error) {
+      console.error("Error updating item title:", error);
+    }
+  }
+
+  async function updateSubItemText(parentId: string, itemId: string, newText: string) {
+    if (!newText.trim()) return;
+    const type = getCurrentType();
+    if (!type) return;
+    try {
+      const endpoint = type === "checklist" ? "checklists" : "reminders";
+      const res = await fetch(`/api/${endpoint}/${parentId}/items/${itemId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: newText }),
+      });
+      if (res.ok) {
+        setEditingSubId(null);
+        fetchItems();
+      }
+    } catch (error) {
+      console.error("Error updating sub-item text:", error);
     }
   }
 
@@ -852,7 +893,27 @@ export default function App() {
                       style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
                     >
                       <div style={styles.itemHeader}>
-                        <h3 style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}>{item.title}</h3>
+                        {editingItem === item.id ? (
+                          <input
+                            type="text"
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            onBlur={() => updateItemTitle(item.id, editingText)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") updateItemTitle(item.id, editingText);
+                              if (e.key === "Escape") setEditingItem(null);
+                            }}
+                            autoFocus
+                            style={{ ...styles.miniInput, margin: 0, fontSize: 16, fontWeight: 600 }}
+                          />
+                        ) : (
+                          <h3 
+                            style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}
+                            onDoubleClick={() => { setEditingItem(item.id); setEditingText(item.title); }}
+                          >
+                            {item.title}
+                          </h3>
+                        )}
                         <div style={styles.itemActions}>
                           <button onClick={() => resetChecklist(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: theme.textSecondary }} title="Reset">
                             {Icons.reset}
@@ -871,9 +932,27 @@ export default function App() {
                             >
                               {task.checked && Icons.check}
                             </button>
-                            <span style={{ ...styles.subItemText, fontSize: 13, textDecoration: task.checked ? "line-through" : "none", color: task.checked ? theme.textMuted : theme.text }}>
-                              {task.text}
-                            </span>
+                            {editingSubId === task.id ? (
+                              <input
+                                type="text"
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.target.value)}
+                                onBlur={() => updateSubItemText(item.id, task.id, editingText)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") updateSubItemText(item.id, task.id, editingText);
+                                  if (e.key === "Escape") setEditingSubId(null);
+                                }}
+                                autoFocus
+                                style={{ ...styles.miniInput, margin: 0, padding: "4px 8px", fontSize: 13 }}
+                              />
+                            ) : (
+                              <span 
+                                style={{ ...styles.subItemText, fontSize: 13, textDecoration: task.checked ? "line-through" : "none", color: task.checked ? theme.textMuted : theme.text }}
+                                onDoubleClick={() => { setEditingSubId(task.id); setEditingText(task.text); }}
+                              >
+                                {task.text}
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -895,7 +974,27 @@ export default function App() {
                       style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
                     >
                       <div style={styles.itemHeader}>
-                        <h3 style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}>{item.title}</h3>
+                        {editingItem === item.id ? (
+                          <input
+                            type="text"
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            onBlur={() => updateItemTitle(item.id, editingText)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") updateItemTitle(item.id, editingText);
+                              if (e.key === "Escape") setEditingItem(null);
+                            }}
+                            autoFocus
+                            style={{ ...styles.miniInput, margin: 0, fontSize: 16, fontWeight: 600 }}
+                          />
+                        ) : (
+                          <h3 
+                            style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}
+                            onDoubleClick={() => { setEditingItem(item.id); setEditingText(item.title); }}
+                          >
+                            {item.title}
+                          </h3>
+                        )}
                         <div style={styles.itemActions}>
                           <button onClick={() => deleteItem(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">
                             {Icons.trash}
@@ -911,9 +1010,27 @@ export default function App() {
                             >
                               {ri.checked && Icons.check}
                             </button>
-                            <span style={{ ...styles.subItemText, fontSize: 13, textDecoration: ri.checked ? "line-through" : "none", color: ri.checked ? theme.textMuted : theme.text }}>
-                              {ri.text}
-                            </span>
+                            {editingSubId === ri.id ? (
+                              <input
+                                type="text"
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.target.value)}
+                                onBlur={() => updateSubItemText(item.id, ri.id, editingText)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") updateSubItemText(item.id, ri.id, editingText);
+                                  if (e.key === "Escape") setEditingSubId(null);
+                                }}
+                                autoFocus
+                                style={{ ...styles.miniInput, margin: 0, padding: "4px 8px", fontSize: 13 }}
+                              />
+                            ) : (
+                              <span 
+                                style={{ ...styles.subItemText, fontSize: 13, textDecoration: ri.checked ? "line-through" : "none", color: ri.checked ? theme.textMuted : theme.text }}
+                                onDoubleClick={() => { setEditingSubId(ri.id); setEditingText(ri.text); }}
+                              >
+                                {ri.text}
+                              </span>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -935,7 +1052,27 @@ export default function App() {
                       style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
                     >
                       <div style={styles.itemHeader}>
-                        <h3 style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}>{item.title}</h3>
+                        {editingItem === item.id ? (
+                          <input
+                            type="text"
+                            value={editingText}
+                            onChange={(e) => setEditingText(e.target.value)}
+                            onBlur={() => updateItemTitle(item.id, editingText)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") updateItemTitle(item.id, editingText);
+                              if (e.key === "Escape") setEditingItem(null);
+                            }}
+                            autoFocus
+                            style={{ ...styles.miniInput, margin: 0, fontSize: 16, fontWeight: 600 }}
+                          />
+                        ) : (
+                          <h3 
+                            style={{ ...styles.itemTitle, color: theme.text, fontSize: 16 }}
+                            onDoubleClick={() => { setEditingItem(item.id); setEditingText(item.title); }}
+                          >
+                            {item.title}
+                          </h3>
+                        )}
                         <div style={styles.itemActions}>
                           <button onClick={() => deleteItem(item.id)} style={{ ...styles.itemActionBtn, width: 28, height: 28, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">
                             {Icons.trash}
@@ -979,7 +1116,27 @@ export default function App() {
                       style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
                     >
                   <div style={styles.itemHeader}>
-                    <h3 style={{ ...styles.itemTitle, color: theme.text }}>{item.title}</h3>
+                    {editingItem === item.id ? (
+                      <input
+                        type="text"
+                        value={editingText}
+                        onChange={(e) => setEditingText(e.target.value)}
+                        onBlur={() => updateItemTitle(item.id, editingText)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") updateItemTitle(item.id, editingText);
+                          if (e.key === "Escape") setEditingItem(null);
+                        }}
+                        autoFocus
+                        style={{ ...styles.miniInput, margin: 0, fontSize: 18, fontWeight: 600 }}
+                      />
+                    ) : (
+                      <h3 
+                        style={{ ...styles.itemTitle, color: theme.text }} 
+                        onDoubleClick={() => { setEditingItem(item.id); setEditingText(item.title); }}
+                      >
+                        {item.title}
+                      </h3>
+                    )}
                     <div style={styles.itemActions}>
                       {view === "checklists" && (
                         <button onClick={() => resetChecklist(item.id)} style={{ ...styles.itemActionBtn, background: theme.bgTertiary, color: theme.textSecondary }} title="Reset">
@@ -1003,9 +1160,27 @@ export default function App() {
                           >
                             {task.checked && Icons.check}
                           </button>
-                          <span style={{ ...styles.subItemText, textDecoration: task.checked ? "line-through" : "none", color: task.checked ? theme.textMuted : theme.text }}>
-                            {task.text}
-                </span>
+                          {editingSubId === task.id ? (
+                            <input
+                              type="text"
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              onBlur={() => updateSubItemText(item.id, task.id, editingText)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") updateSubItemText(item.id, task.id, editingText);
+                                if (e.key === "Escape") setEditingSubId(null);
+                              }}
+                              autoFocus
+                              style={{ ...styles.miniInput, margin: 0, padding: "4px 8px", fontSize: 14 }}
+                            />
+                          ) : (
+                            <span 
+                              style={{ ...styles.subItemText, textDecoration: task.checked ? "line-through" : "none", color: task.checked ? theme.textMuted : theme.text }}
+                              onDoubleClick={() => { setEditingSubId(task.id); setEditingText(task.text); }}
+                            >
+                              {task.text}
+                            </span>
+                          )}
                           {task.completedAt && (
                             <span style={{ ...styles.timestamp, color: theme.textMuted }}>
                               {new Date(task.completedAt).toLocaleDateString()} {new Date(task.completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -1040,9 +1215,27 @@ export default function App() {
                           >
                             {ri.checked && Icons.check}
                           </button>
-                          <span style={{ ...styles.subItemText, textDecoration: ri.checked ? "line-through" : "none", color: ri.checked ? theme.textMuted : theme.text }}>
-                            {ri.text}
-                          </span>
+                          {editingSubId === ri.id ? (
+                            <input
+                              type="text"
+                              value={editingText}
+                              onChange={(e) => setEditingText(e.target.value)}
+                              onBlur={() => updateSubItemText(item.id, ri.id, editingText)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") updateSubItemText(item.id, ri.id, editingText);
+                                if (e.key === "Escape") setEditingSubId(null);
+                              }}
+                              autoFocus
+                              style={{ ...styles.miniInput, margin: 0, padding: "4px 8px", fontSize: 14 }}
+                            />
+                          ) : (
+                            <span 
+                              style={{ ...styles.subItemText, textDecoration: ri.checked ? "line-through" : "none", color: ri.checked ? theme.textMuted : theme.text }}
+                              onDoubleClick={() => { setEditingSubId(ri.id); setEditingText(ri.text); }}
+                            >
+                              {ri.text}
+                            </span>
+                          )}
                           {ri.completedAt && (
                             <span style={{ ...styles.timestamp, color: theme.textMuted }}>
                               {new Date(ri.completedAt).toLocaleDateString()} {new Date(ri.completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
