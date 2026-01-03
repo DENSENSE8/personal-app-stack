@@ -63,11 +63,18 @@ export default function HomePage() {
           ].map((section, i) => (
             <motion.div 
               key={section.title} 
-              whileHover={{ y: -10, boxShadow: "0 20px 40px rgba(0,0,0,0.1)" }}
+              whileHover={{ y: -10 }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
-              style={{ ...styles.sectionCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
+              style={{ 
+                ...styles.sectionCard, 
+                backgroundColor: theme.cardBg, 
+                border: `1px solid ${theme.cardBorder}`,
+                boxShadow: "0 4px 8px rgba(0,0,0,0.05)",
+              } as React.CSSProperties}
+              onMouseEnter={(e) => e.currentTarget.style.boxShadow = "0 20px 40px rgba(0,0,0,0.1)"}
+              onMouseLeave={(e) => e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.05)"}
             >
               <span style={styles.sectionIcon}>{section.icon}</span>
               <h2 style={{ ...styles.sectionTitle, color: theme.text }}>{section.title}</h2>

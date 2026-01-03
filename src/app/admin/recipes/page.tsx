@@ -368,12 +368,12 @@ export default function RecipesPage() {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               style={{ 
-                background: theme.cardBg,
+                backgroundColor: theme.cardBg,
                 borderRadius: 16,
                 padding: 24,
                 maxWidth: 500,
                 width: "90%",
-              }}
+              } as React.CSSProperties}
               onClick={(e) => e.stopPropagation()}
             >
               <h3 style={{ color: theme.text, marginBottom: 16 }}>Add Block</h3>
@@ -533,7 +533,7 @@ export default function RecipesPage() {
                   type="checkbox" 
                   checked={item.checked}
                   onChange={(e) => {
-                    const updatedItems = [...block.content.items];
+                    const updatedItems = [...(block.content.items || [])];
                     updatedItems[idx].checked = e.target.checked;
                     updateBlock(block.id, { items: updatedItems });
                   }}
@@ -544,7 +544,7 @@ export default function RecipesPage() {
                   value={item.text}
                   onChange={(e) => {
                     if (!editMode) return;
-                    const updatedItems = [...block.content.items];
+                    const updatedItems = [...(block.content.items || [])];
                     updatedItems[idx].text = e.target.value;
                     updateBlock(block.id, { items: updatedItems });
                   }}
@@ -563,7 +563,7 @@ export default function RecipesPage() {
                 {editMode && (
                   <button
                     onClick={() => {
-                      const updatedItems = block.content.items.filter((_: any, i: number) => i !== idx);
+                      const updatedItems = (block.content.items || []).filter((_: any, i: number) => i !== idx);
                       updateBlock(block.id, { items: updatedItems });
                     }}
                     style={{
@@ -673,10 +673,10 @@ export default function RecipesPage() {
               key={recipe.id} 
               style={{ 
                 ...styles.itemCard, 
-                background: theme.cardBg, 
+                backgroundColor: theme.cardBg, 
                 border: `1px solid ${theme.cardBorder}`,
                 cursor: "pointer",
-              }}
+              } as React.CSSProperties}
               onClick={() => openRecipe(recipe.id)}
             >
               <div style={styles.itemHeader}>
@@ -740,7 +740,7 @@ export default function RecipesPage() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              style={{ ...styles.modal, background: theme.cardBg }}
+              style={{ ...styles.modal, backgroundColor: theme.cardBg } as React.CSSProperties}
             >
               <h2 style={{ ...styles.modalTitle, color: theme.text }}>New Recipe</h2>
               <input
