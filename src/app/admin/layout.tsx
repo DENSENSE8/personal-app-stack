@@ -20,20 +20,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [newFolderName, setNewFolderName] = useState("");
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folderId: string } | null>(null);
   const folderMapRef = useRef<Record<string, FolderType>>({});
 
   // Get current view from pathname
   const view = useMemo(() => {
     if (pathname.includes("recipes")) return "recipes";
-    if (pathname.includes("checklists")) return "checklists";
-    if (pathname.includes("reminders")) return "reminders";
     return "dashboard";
   }, [pathname]);
 
   const getCurrentType = useCallback(() => {
     if (view === "recipes") return "recipe";
-    if (view === "checklists") return "checklist";
-    if (view === "reminders") return "reminder";
     return null;
   }, [view]);
 
@@ -86,10 +83,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [getCurrentType]);
 
   useEffect(() => {
-    if (isAuthed && ["recipes", "checklists", "reminders"].includes(view)) {
+    if (isAuthed && view === "recipes") {
       fetchFolders();
     }
   }, [isAuthed, view, fetchFolders]);
+
+  useEffect(() => {
+    const handleClickOutside = () => setContextMenu(null);
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   const folderPath = useMemo(() => {
     const path: FolderType[] = [];
@@ -203,29 +206,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
           {/* Navigation Section */}
           <div style={{ padding: "16px 16px 8px", display: "flex", flexDirection: "column", gap: 4 }}>
-            {[
-              { id: "recipes", icon: Icons.recipes, label: "Recipes", path: "/admin/recipes" },
-              { id: "checklists", icon: Icons.checklist, label: "Checklists", path: "/admin/checklists" },
-              { id: "reminders", icon: Icons.reminder, label: "Reminders", path: "/admin/reminders" },
-            ].map((nav) => (
-              <button
-                key={nav.id}
-                onClick={() => {
-                  setSelectedFolderId(null);
-                  router.push(nav.path);
-                }}
-                style={{
-                  ...styles.folderItem,
-                  background: view === nav.id ? "rgba(5, 150, 105, 0.1)" : "transparent",
-                  color: view === nav.id ? theme.primary : theme.text,
-                  fontWeight: view === nav.id ? 700 : 500,
-                  border: view === nav.id ? `1px solid ${theme.primary}33` : "1px solid transparent",
-                }}
-              >
-                <span style={{ fontSize: 18, display: "flex" }}>{nav.icon}</span>
-                <span>{nav.label}</span>
-              </button>
-            ))}
+            <button
+              onClick={() => {
+                setSelectedFolderId(null);
+                router.push("/admin/recipes");
+              }}
+              style={{
+                ...styles.folderItem,
+                background: view === "recipes" ? "rgba(5, 150, 105, 0.1)" : "transparent",
+                color: view === "recipes" ? theme.primary : theme.text,
+                fontWeight: view === "recipes" ? 700 : 500,
+                border: view === "recipes" ? `1px solid ${theme.primary}33` : "1px solid transparent",
+              }}
+            >
+              <span style={{ fontSize: 18, display: "flex" }}>{Icons.recipes}</span>
+              <span>Recipes</span>
+            </button>
           </div>
 
           <div style={{ ...styles.folderList, paddingTop: 8 }}>
@@ -262,9 +258,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       }
                     }}
                     onClick={() => setSelectedFolderId(folder.id)}
-                    onDoubleClick={() => {
-                      setEditingFolderId(folder.id);
-                      setEditingFolderName(folder.name);
+                    onContextMenu={(e) => {
+                      e.preventDefault();
+                      setContextMenu({ x: e.clientX, y: e.clientY, folderId: folder.id });
                     }}
                     style={{ 
                       ...styles.folderItem, 
@@ -324,9 +320,83 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           )}
         </div>
 
+        {/* Context Menu for Folder Actions */}
+        {contextMenu && (
+          <div 
+            style={{
+              position: "fixed",
+              top: contextMenu.y,
+              left: contextMenu.x,
+              background: theme.cardBg,
+              border: `1px solid ${theme.border}`,
+              borderRadius: 8,
+              boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+              zIndex: 1000,
+              minWidth: 160,
+              padding: 4,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => {
+                const folder = folders.find(f => f.id === contextMenu.folderId);
+                if (folder) {
+                  setEditingFolderId(folder.id);
+                  setEditingFolderName(folder.name);
+                  setContextMenu(null);
+                }
+              }}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                background: "transparent",
+                border: "none",
+                color: theme.text,
+                textAlign: "left",
+                cursor: "pointer",
+                borderRadius: 4,
+                fontSize: 14,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = theme.bgTertiary}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+            >
+              {Icons.edit}
+              <span>Rename</span>
+            </button>
+            <button
+              onClick={() => {
+                deleteFolder(contextMenu.folderId);
+                setContextMenu(null);
+              }}
+              style={{
+                width: "100%",
+                padding: "8px 12px",
+                background: "transparent",
+                border: "none",
+                color: theme.error,
+                textAlign: "left",
+                cursor: "pointer",
+                borderRadius: 4,
+                fontSize: 14,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = theme.errorBg}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+            >
+              {Icons.trash}
+              <span>Delete</span>
+            </button>
+          </div>
+        )}
+
         <button 
           onClick={() => setSidebarOpen(!sidebarOpen)} 
-          style={{ ...styles.sidebarToggle, left: sidebarOpen ? 24 : 24, bottom: 24, background: theme.cardBg, border: `1px solid ${theme.border}`, color: theme.textSecondary }}
+          style={{ ...styles.sidebarToggle, left: sidebarOpen ? 24 : 24, background: theme.cardBg, border: `1px solid ${theme.border}`, color: theme.textSecondary }}
         >
           {sidebarOpen ? "‹" : "›"}
         </button>

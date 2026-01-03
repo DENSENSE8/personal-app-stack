@@ -8,85 +8,47 @@ generator client {
 }
 
 model Folder {
-  id         String      @id @default(cuid())
-  name       String
-  parentId   String?
-  parent     Folder?     @relation("FolderChildren", fields: [parentId], references: [id], onDelete: Cascade)
-  children   Folder[]    @relation("FolderChildren")
-  type       String      // 'recipe' | 'reminder' | 'checklist'
-  checklists Checklist[]
-  reminders  Reminder[]
-  recipes    Recipe[]
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?
+  parent    Folder?  @relation("FolderChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[] @relation("FolderChildren")
+  type      String   // 'recipe' only
+  recipes   Recipe[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([parentId])
   @@index([type])
 }
 
-model Checklist {
-  id        String          @id @default(cuid())
-  title     String
-  folderId  String?
-  folder    Folder?         @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  items     ChecklistItem[]
-  recipes   Recipe[]        @relation("RecipeChecklist")
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-
-  @@index([folderId])
-}
-
-model ChecklistItem {
-  id          String    @id @default(cuid())
-  text        String
-  checked     Boolean   @default(false)
-  completedAt DateTime?
-  position    Int       @default(0)
-  fileUrl     String?
-  checklistId String
-  checklist   Checklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
-
-  @@index([checklistId, position])
-}
-
-model Reminder {
-  id        String         @id @default(cuid())
-  title     String
-  folderId  String?
-  folder    Folder?        @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  items     ReminderItem[]
-  createdAt DateTime       @default(now())
-  updatedAt DateTime       @updatedAt
-
-  @@index([folderId])
-}
-
-model ReminderItem {
-  id          String    @id @default(cuid())
-  text        String
-  checked     Boolean   @default(false)
-  completedAt DateTime?
-  position    Int       @default(0)
-  fileUrl     String?
-  reminderId  String
-  reminder    Reminder  @relation(fields: [reminderId], references: [id], onDelete: Cascade)
-
-  @@index([reminderId, position])
-}
-
 model Recipe {
-  id                  String     @id @default(cuid())
-  title               String
-  description         String?
-  folderId            String?
-  folder              Folder?    @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  embeddedChecklistId String?
-  embeddedChecklist   Checklist? @relation("RecipeChecklist", fields: [embeddedChecklistId], references: [id], onDelete: SetNull)
-  fileUrl             String?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  folderId    String?
+  folder      Folder?       @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  blocks      RecipeBlock[]
+  coverImage  String?
+  tags        String[]      @default([])
+  prepTime    Int?          // minutes
+  cookTime    Int?          // minutes
+  servings    Int?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@index([folderId])
-  @@index([embeddedChecklistId])
+}
+
+model RecipeBlock {
+  id       String   @id @default(cuid())
+  recipeId String
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  type     String   // 'text', 'heading', 'image', 'checklist', 'video', 'divider', 'quote', 'ingredients', 'steps'
+  content  Json     // Flexible JSON field for block-specific data
+  position Int      @default(0)
+  metadata Json?    // Additional metadata (styling, settings, etc.)
+
+  @@index([recipeId, position])
+  @@index([type])
 }

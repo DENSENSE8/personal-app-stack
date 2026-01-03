@@ -20,34 +20,26 @@ export default function DashboardPage() {
           <h1 style={{ ...styles.dashTitle, color: theme.textSecondary }}>Welcome Back,</h1>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
             <p style={styles.dashName}>Michael Garisek!</p>
-            <span style={{ fontSize: 28 }}>👋</span>
+            <span style={{ fontSize: 28 }}>👨‍🍳</span>
           </div>
-          <p style={{ ...styles.dashSubtext, color: theme.textSecondary, marginTop: 16 }}>What would you like to manage today?</p>
+          <p style={{ ...styles.dashSubtext, color: theme.textSecondary, marginTop: 16 }}>Your recipe collection awaits</p>
         </div>
 
-        <div style={styles.dashCards}>
-          {[
-            { path: "/admin/recipes", icon: Icons.recipes, title: "Recipes", desc: "Manage your favorite recipes", color: "#059669" },
-            { path: "/admin/checklists", icon: Icons.checklist, title: "Checklists", desc: "Track tasks and to-dos", color: "#0d9488" },
-            { path: "/admin/reminders", icon: Icons.reminder, title: "Reminders", desc: "Never forget important things", color: "#14b8a6" },
-          ].map((card, i) => (
-            <motion.button
-              key={card.path}
-              whileHover={{ y: -10, scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
-              onClick={() => router.push(card.path)}
-              style={{ ...styles.dashCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
-            >
-              <div style={{ ...styles.cardIconWrap, background: `linear-gradient(135deg, ${card.color}, ${card.color}dd)` }}>
-                {card.icon}
-              </div>
-              <h3 style={{ ...styles.cardTitle, color: theme.text }}>{card.title}</h3>
-              <p style={{ ...styles.cardDesc, color: theme.textSecondary }}>{card.desc}</p>
-            </motion.button>
-          ))}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <motion.button
+            whileHover={{ y: -10, scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            onClick={() => router.push("/admin/recipes")}
+            style={{ ...styles.dashCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, maxWidth: 400 }}
+          >
+            <div style={{ ...styles.cardIconWrap, background: "linear-gradient(135deg, #059669, #0d9488)" }}>
+              {Icons.recipes}
+            </div>
+            <h3 style={{ ...styles.cardTitle, color: theme.text }}>Recipe Collection</h3>
+            <p style={{ ...styles.cardDesc, color: theme.textSecondary }}>Create, organize, and manage your favorite recipes with rich content blocks</p>
+          </motion.button>
         </div>
       </main>
     </div>

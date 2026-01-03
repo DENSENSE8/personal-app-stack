@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { styles } from "@/lib/styles";
 import { Icons } from "@/lib/icons";
-import { RecipeType } from "@/lib/types";
+import { RecipeType, RecipeBlock, RecipeBlockType } from "@/lib/types";
 import { useAdmin } from "@/context/AdminContext";
 
 export default function RecipesPage() {
@@ -14,6 +14,10 @@ export default function RecipesPage() {
   const [newRecipeTitle, setNewRecipeTitle] = useState("");
   const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeType | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [showBlockMenu, setShowBlockMenu] = useState(false);
+  const [insertPosition, setInsertPosition] = useState<number>(-1);
 
   const fetchRecipes = useCallback(async () => {
     try {
@@ -79,6 +83,571 @@ export default function RecipesPage() {
     }
   };
 
+  const openRecipe = async (recipeId: string) => {
+    try {
+      const res = await fetch(`/api/recipes/${recipeId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedRecipe(data);
+        setIsEditMode(false);
+      }
+    } catch (error) {
+      console.error("Error fetching recipe:", error);
+    }
+  };
+
+  const addBlock = (type: RecipeBlockType, position: number) => {
+    if (!selectedRecipe) return;
+    
+    const newBlock: RecipeBlock = {
+      id: `temp-${Date.now()}`,
+      recipeId: selectedRecipe.id,
+      type,
+      content: getDefaultContent(type),
+      position,
+      metadata: {},
+    };
+    
+    const updatedBlocks = [...(selectedRecipe.blocks || [])];
+    updatedBlocks.splice(position, 0, newBlock);
+    
+    // Update positions
+    updatedBlocks.forEach((block, idx) => {
+      block.position = idx;
+    });
+    
+    setSelectedRecipe({ ...selectedRecipe, blocks: updatedBlocks });
+    setShowBlockMenu(false);
+  };
+
+  const getDefaultContent = (type: RecipeBlockType) => {
+    switch (type) {
+      case "text":
+        return { text: "" };
+      case "heading":
+        return { text: "", level: 2 as 1 | 2 | 3 };
+      case "image":
+        return { url: "", caption: "", alt: "" };
+      case "checklist":
+        return { items: [] };
+      case "ingredients":
+        return { ingredients: [] };
+      case "steps":
+        return { steps: [] };
+      case "divider":
+        return {};
+      case "quote":
+        return { text: "" };
+      default:
+        return {};
+    }
+  };
+
+  const updateBlock = (blockId: string, content: any) => {
+    if (!selectedRecipe) return;
+    const updatedBlocks = selectedRecipe.blocks?.map(block =>
+      block.id === blockId ? { ...block, content } : block
+    );
+    setSelectedRecipe({ ...selectedRecipe, blocks: updatedBlocks });
+  };
+
+  const deleteBlock = (blockId: string) => {
+    if (!selectedRecipe) return;
+    const updatedBlocks = selectedRecipe.blocks?.filter(block => block.id !== blockId);
+    // Update positions
+    updatedBlocks?.forEach((block, idx) => {
+      block.position = idx;
+    });
+    setSelectedRecipe({ ...selectedRecipe, blocks: updatedBlocks });
+  };
+
+  const moveBlock = (fromIndex: number, toIndex: number) => {
+    if (!selectedRecipe?.blocks) return;
+    const blocks = [...selectedRecipe.blocks];
+    const [moved] = blocks.splice(fromIndex, 1);
+    blocks.splice(toIndex, 0, moved);
+    // Update positions
+    blocks.forEach((block, idx) => {
+      block.position = idx;
+    });
+    setSelectedRecipe({ ...selectedRecipe, blocks });
+  };
+
+  const saveRecipe = async () => {
+    if (!selectedRecipe) return;
+    try {
+      const res = await fetch(`/api/recipes/${selectedRecipe.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(selectedRecipe),
+      });
+      if (res.ok) {
+        setIsEditMode(false);
+        fetchRecipes();
+      }
+    } catch (error) {
+      console.error("Error saving recipe:", error);
+    }
+  };
+
+  // If viewing a recipe
+  if (selectedRecipe) {
+    return (
+      <div style={styles.sectionContent}>
+        {/* Recipe Header */}
+        <div style={{ marginBottom: 32 }}>
+          <button 
+            onClick={() => { setSelectedRecipe(null); fetchRecipes(); }}
+            style={{ 
+              ...styles.backBtn, 
+              marginBottom: 16,
+              background: theme.bgTertiary,
+              color: theme.text,
+            }}
+          >
+            {Icons.back}
+            <span>Back to Recipes</span>
+          </button>
+          
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h1 style={{ fontSize: 32, fontWeight: 700, color: theme.text, margin: 0 }}>
+              {selectedRecipe.title}
+            </h1>
+            <div style={{ display: "flex", gap: 12 }}>
+              {isEditMode ? (
+                <>
+                  <button 
+                    onClick={() => setIsEditMode(false)}
+                    style={{ ...styles.backBtn, background: theme.bgTertiary, color: theme.text }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={saveRecipe}
+                    style={styles.addItemBtn}
+                  >
+                    Save Changes
+                  </button>
+                </>
+              ) : (
+                <button 
+                  onClick={() => setIsEditMode(true)}
+                  style={styles.addItemBtn}
+                >
+                  {Icons.edit}
+                  <span>Edit Recipe</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {selectedRecipe.description && (
+            <p style={{ color: theme.textSecondary, fontSize: 16, marginTop: 8 }}>
+              {selectedRecipe.description}
+            </p>
+          )}
+        </div>
+
+        {/* Blocks */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {selectedRecipe.blocks?.length === 0 || !selectedRecipe.blocks ? (
+            <div style={{ ...styles.emptyState, background: theme.cardBg, borderColor: theme.border }}>
+              <span style={styles.emptyIcon}>📝</span>
+              <p style={{ color: theme.textSecondary, marginBottom: 16 }}>No content yet. Start building your recipe!</p>
+              {isEditMode && (
+                <button 
+                  onClick={() => { setInsertPosition(0); setShowBlockMenu(true); }}
+                  style={styles.addItemBtn}
+                >
+                  {Icons.plus}
+                  <span>Add First Block</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            selectedRecipe.blocks.map((block, index) => (
+              <div key={block.id} style={{ position: "relative" }}>
+                {isEditMode && (
+                  <div style={{ 
+                    display: "flex", 
+                    gap: 8, 
+                    marginBottom: 8,
+                    opacity: 0.6,
+                  }}>
+                    <button 
+                      onClick={() => index > 0 && moveBlock(index, index - 1)}
+                      disabled={index === 0}
+                      style={{ 
+                        padding: "4px 8px",
+                        background: theme.bgTertiary,
+                        border: "none",
+                        borderRadius: 4,
+                        cursor: index === 0 ? "not-allowed" : "pointer",
+                        color: theme.text,
+                        fontSize: 12,
+                      }}
+                    >
+                      ↑
+                    </button>
+                    <button 
+                      onClick={() => index < (selectedRecipe.blocks?.length || 0) - 1 && moveBlock(index, index + 1)}
+                      disabled={index === (selectedRecipe.blocks?.length || 0) - 1}
+                      style={{ 
+                        padding: "4px 8px",
+                        background: theme.bgTertiary,
+                        border: "none",
+                        borderRadius: 4,
+                        cursor: index === (selectedRecipe.blocks?.length || 0) - 1 ? "not-allowed" : "pointer",
+                        color: theme.text,
+                        fontSize: 12,
+                      }}
+                    >
+                      ↓
+                    </button>
+                    <button 
+                      onClick={() => deleteBlock(block.id)}
+                      style={{ 
+                        padding: "4px 8px",
+                        background: theme.errorBg,
+                        border: "none",
+                        borderRadius: 4,
+                        cursor: "pointer",
+                        color: theme.error,
+                        fontSize: 12,
+                      }}
+                    >
+                      {Icons.trash}
+                    </button>
+                    <button 
+                      onClick={() => { setInsertPosition(index + 1); setShowBlockMenu(true); }}
+                      style={{ 
+                        padding: "4px 8px",
+                        background: theme.bgTertiary,
+                        border: "none",
+                        borderRadius: 4,
+                        cursor: "pointer",
+                        color: theme.text,
+                        fontSize: 12,
+                        marginLeft: "auto",
+                      }}
+                    >
+                      {Icons.plus} Insert Below
+                    </button>
+                  </div>
+                )}
+                
+                {/* Block Renderer */}
+                <div style={{ 
+                  background: theme.cardBg, 
+                  border: `1px solid ${theme.cardBorder}`,
+                  borderRadius: 12,
+                  padding: 20,
+                }}>
+                  {renderBlock(block, isEditMode)}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Block Type Selector */}
+        {showBlockMenu && (
+          <div 
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 200,
+            }}
+            onClick={() => setShowBlockMenu(false)}
+          >
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              style={{ 
+                background: theme.cardBg,
+                borderRadius: 16,
+                padding: 24,
+                maxWidth: 500,
+                width: "90%",
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 style={{ color: theme.text, marginBottom: 16 }}>Add Block</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+                {[
+                  { type: "text" as RecipeBlockType, label: "Text", icon: "📝" },
+                  { type: "heading" as RecipeBlockType, label: "Heading", icon: "📌" },
+                  { type: "image" as RecipeBlockType, label: "Image", icon: "🖼️" },
+                  { type: "checklist" as RecipeBlockType, label: "Checklist", icon: "✅" },
+                  { type: "ingredients" as RecipeBlockType, label: "Ingredients", icon: "🥗" },
+                  { type: "steps" as RecipeBlockType, label: "Steps", icon: "👨‍🍳" },
+                  { type: "divider" as RecipeBlockType, label: "Divider", icon: "➖" },
+                  { type: "quote" as RecipeBlockType, label: "Quote", icon: "💬" },
+                ].map(({ type, label, icon }) => (
+                  <button
+                    key={type}
+                    onClick={() => addBlock(type, insertPosition)}
+                    style={{
+                      padding: 16,
+                      background: theme.bgTertiary,
+                      border: `1px solid ${theme.border}`,
+                      borderRadius: 8,
+                      cursor: "pointer",
+                      color: theme.text,
+                      fontSize: 14,
+                      fontWeight: 500,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                  >
+                    <span style={{ fontSize: 24 }}>{icon}</span>
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Helper function to render blocks
+  const renderBlock = (block: RecipeBlock, editMode: boolean) => {
+    switch (block.type) {
+      case "text":
+        return (
+          <textarea
+            value={block.content.text || ""}
+            onChange={(e) => editMode && updateBlock(block.id, { text: e.target.value })}
+            readOnly={!editMode}
+            style={{
+              width: "100%",
+              minHeight: 100,
+              border: "none",
+              background: "transparent",
+              color: theme.text,
+              fontSize: 16,
+              fontFamily: "inherit",
+              resize: "vertical",
+              outline: editMode ? `1px dashed ${theme.border}` : "none",
+              padding: editMode ? 8 : 0,
+            }}
+            placeholder="Type your text here..."
+          />
+        );
+      
+      case "heading":
+        return (
+          <input
+            type="text"
+            value={block.content.text || ""}
+            onChange={(e) => editMode && updateBlock(block.id, { ...block.content, text: e.target.value })}
+            readOnly={!editMode}
+            style={{
+              width: "100%",
+              border: "none",
+              background: "transparent",
+              color: theme.text,
+              fontSize: block.content.level === 1 ? 32 : block.content.level === 2 ? 24 : 20,
+              fontWeight: 700,
+              fontFamily: "inherit",
+              outline: editMode ? `1px dashed ${theme.border}` : "none",
+              padding: editMode ? 8 : 0,
+            }}
+            placeholder="Heading text..."
+          />
+        );
+      
+      case "image":
+        return (
+          <div>
+            {block.content.url ? (
+              <img 
+                src={block.content.url} 
+                alt={block.content.alt || ""}
+                style={{ width: "100%", borderRadius: 8 }}
+              />
+            ) : editMode && (
+              <div style={{ 
+                padding: 40,
+                border: `2px dashed ${theme.border}`,
+                borderRadius: 8,
+                textAlign: "center",
+                color: theme.textSecondary,
+              }}>
+                <p>Image URL:</p>
+                <input
+                  type="text"
+                  value={block.content.url || ""}
+                  onChange={(e) => updateBlock(block.id, { ...block.content, url: e.target.value })}
+                  style={{
+                    width: "100%",
+                    padding: 8,
+                    marginTop: 8,
+                    background: theme.inputBg,
+                    border: `1px solid ${theme.inputBorder}`,
+                    borderRadius: 4,
+                    color: theme.text,
+                  }}
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
+            )}
+            {(block.content.url || editMode) && (
+              <input
+                type="text"
+                value={block.content.caption || ""}
+                onChange={(e) => editMode && updateBlock(block.id, { ...block.content, caption: e.target.value })}
+                readOnly={!editMode}
+                style={{
+                  width: "100%",
+                  marginTop: 8,
+                  padding: 4,
+                  border: "none",
+                  background: "transparent",
+                  color: theme.textSecondary,
+                  fontSize: 14,
+                  fontStyle: "italic",
+                  textAlign: "center",
+                  outline: editMode ? `1px dashed ${theme.border}` : "none",
+                }}
+                placeholder="Image caption..."
+              />
+            )}
+          </div>
+        );
+      
+      case "checklist":
+        return (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {block.content.items?.map((item: any, idx: number) => (
+              <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <input 
+                  type="checkbox" 
+                  checked={item.checked}
+                  onChange={(e) => {
+                    const updatedItems = [...block.content.items];
+                    updatedItems[idx].checked = e.target.checked;
+                    updateBlock(block.id, { items: updatedItems });
+                  }}
+                  style={{ width: 20, height: 20, cursor: "pointer" }}
+                />
+                <input
+                  type="text"
+                  value={item.text}
+                  onChange={(e) => {
+                    if (!editMode) return;
+                    const updatedItems = [...block.content.items];
+                    updatedItems[idx].text = e.target.value;
+                    updateBlock(block.id, { items: updatedItems });
+                  }}
+                  readOnly={!editMode}
+                  style={{
+                    flex: 1,
+                    border: "none",
+                    background: "transparent",
+                    color: theme.text,
+                    fontSize: 14,
+                    textDecoration: item.checked ? "line-through" : "none",
+                    opacity: item.checked ? 0.6 : 1,
+                  }}
+                  placeholder="Checklist item..."
+                />
+                {editMode && (
+                  <button
+                    onClick={() => {
+                      const updatedItems = block.content.items.filter((_: any, i: number) => i !== idx);
+                      updateBlock(block.id, { items: updatedItems });
+                    }}
+                    style={{
+                      padding: 4,
+                      background: "transparent",
+                      border: "none",
+                      color: theme.error,
+                      cursor: "pointer",
+                    }}
+                  >
+                    {Icons.trash}
+                  </button>
+                )}
+              </div>
+            ))}
+            {editMode && (
+              <button
+                onClick={() => {
+                  const updatedItems = [
+                    ...(block.content.items || []),
+                    { id: `item-${Date.now()}`, text: "", checked: false },
+                  ];
+                  updateBlock(block.id, { items: updatedItems });
+                }}
+                style={{
+                  padding: 8,
+                  background: theme.bgTertiary,
+                  border: "none",
+                  borderRadius: 4,
+                  color: theme.text,
+                  cursor: "pointer",
+                  fontSize: 12,
+                }}
+              >
+                {Icons.plus} Add Item
+              </button>
+            )}
+          </div>
+        );
+      
+      case "divider":
+        return (
+          <div style={{ 
+            height: 1,
+            background: theme.border,
+            margin: "16px 0",
+          }} />
+        );
+      
+      case "quote":
+        return (
+          <blockquote style={{
+            borderLeft: `4px solid ${theme.primary}`,
+            paddingLeft: 16,
+            fontStyle: "italic",
+            color: theme.textSecondary,
+          }}>
+            <textarea
+              value={block.content.text || ""}
+              onChange={(e) => editMode && updateBlock(block.id, { text: e.target.value })}
+              readOnly={!editMode}
+              style={{
+                width: "100%",
+                minHeight: 60,
+                border: "none",
+                background: "transparent",
+                color: "inherit",
+                fontSize: 16,
+                fontFamily: "inherit",
+                fontStyle: "italic",
+                resize: "vertical",
+                outline: editMode ? `1px dashed ${theme.border}` : "none",
+              }}
+              placeholder="Quote text..."
+            />
+          </blockquote>
+        );
+      
+      default:
+        return <p style={{ color: theme.textSecondary }}>Block type: {block.type}</p>;
+    }
+  };
+
+  // Original recipe list view
   return (
     <div style={styles.sectionContent}>
       <div style={styles.contentHeader}>
@@ -102,7 +671,13 @@ export default function RecipesPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               key={recipe.id} 
-              style={{ ...styles.itemCard, background: theme.cardBg, border: `1px solid ${theme.cardBorder}` }}
+              style={{ 
+                ...styles.itemCard, 
+                background: theme.cardBg, 
+                border: `1px solid ${theme.cardBorder}`,
+                cursor: "pointer",
+              }}
+              onClick={() => openRecipe(recipe.id)}
             >
               <div style={styles.itemHeader}>
                 {editingRecipeId === recipe.id ? (
@@ -110,24 +685,42 @@ export default function RecipesPage() {
                     type="text"
                     value={editingText}
                     onChange={(e) => setEditingText(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
                     onBlur={() => updateRecipeTitle(recipe.id, editingText)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") updateRecipeTitle(recipe.id, editingText);
                       if (e.key === "Escape") setEditingRecipeId(null);
                     }}
                     autoFocus
-                    style={{ ...styles.miniInput, margin: 0, fontSize: 18, fontWeight: 600, color: "#fff", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
+                    style={{ ...styles.miniInput, margin: 0, fontSize: 18, fontWeight: 600, color: theme.text, background: theme.inputBg, border: `1px solid ${theme.inputBorder}` }}
                   />
                 ) : (
                   <h3 
                     style={{ ...styles.itemTitle, color: theme.text }} 
-                    onDoubleClick={() => { setEditingRecipeId(recipe.id); setEditingText(recipe.title); }}
                   >
                     {recipe.title}
                   </h3>
                 )}
-                <div style={styles.itemActions}>
-                  <button onClick={() => deleteRecipe(recipe.id)} style={{ ...styles.itemActionBtn, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">
+                <div style={styles.itemActions} onClick={(e) => e.stopPropagation()}>
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setEditingRecipeId(recipe.id); 
+                      setEditingText(recipe.title); 
+                    }} 
+                    style={{ ...styles.itemActionBtn, background: theme.bgTertiary, color: theme.text }} 
+                    title="Rename"
+                  >
+                    {Icons.edit}
+                  </button>
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      deleteRecipe(recipe.id); 
+                    }} 
+                    style={{ ...styles.itemActionBtn, background: theme.bgTertiary, color: "#ef4444" }} 
+                    title="Delete"
+                  >
                     {Icons.trash}
                   </button>
                 </div>

@@ -599,7 +599,7 @@ export const styles: Record<string, React.CSSProperties> = {
   },
   sidebarToggle: {
     position: "fixed",
-    bottom: 24,
+    bottom: 120,
     left: 24,
     width: 48,
     height: 48,
