@@ -127,7 +127,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     
     // Build the full path for the URL
     const path: string[] = [];
-    let current = folderMapRef.current[id];
+    let current: FolderType | undefined = folderMapRef.current[id];
     while (current) {
       path.unshift(current.id);
       current = current.parentId ? folderMapRef.current[current.parentId] : undefined;

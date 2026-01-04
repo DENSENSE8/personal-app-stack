@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { styles } from "@/lib/styles";
 import { Icons } from "@/lib/icons";
-import { RecipeType, RecipeBlock, RecipeBlockType } from "@/lib/types";
+import { RecipeType, RecipeBlock, RecipeBlockType, RecipeBlockContent } from "@/lib/types";
 import { useAdmin } from "@/context/AdminContext";
 
 export default function RecipesPage() {
@@ -126,7 +126,7 @@ export default function RecipesPage() {
     setShowBlockMenu(false);
   };
 
-  const getDefaultContent = (type: RecipeBlockType) => {
+  const getDefaultContent = (type: RecipeBlockType): RecipeBlockContent => {
     switch (type) {
       case "text": return { text: "" };
       case "heading": return { text: "", level: 2 };

@@ -85,6 +85,18 @@ export const styles: Record<string, React.CSSProperties> = {
     padding: "0 24px",
     position: "relative",
   },
+  heroGlow: {
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 300,
+    height: 300,
+    background: "radial-gradient(circle, rgba(5, 150, 105, 0.15) 0%, transparent 70%)",
+    borderRadius: "50%",
+    filter: "blur(40px)",
+    zIndex: -1,
+  },
   heroTitle: {
     fontSize: "clamp(56px, 12vw, 100px)",
     fontWeight: 900,

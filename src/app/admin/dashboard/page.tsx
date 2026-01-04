@@ -7,6 +7,7 @@ import { styles } from "@/lib/styles";
 import { Icons } from "@/lib/icons";
 import { useAdmin } from "@/context/AdminContext";
 
+// Fixed Icons.back usage
 export default function DashboardPage() {
   const router = useRouter();
   const { theme, darkMode } = useAdmin();
@@ -104,7 +105,7 @@ export default function DashboardPage() {
                 className="mt-8 flex items-center justify-center gap-2 text-emerald-600 font-bold text-sm"
                 whileHover={{ gap: 8 }}
               >
-                Open Collection <Icons.back style={{ transform: "rotate(180deg)", fontSize: 12 }} />
+                Open Collection <span style={{ transform: "rotate(180deg)", display: "flex", alignItems: "center" }}>{Icons.back}</span>
               </motion.div>
             </motion.button>
           ))}
