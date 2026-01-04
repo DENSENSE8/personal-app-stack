@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Icons } from "@/lib/icons";
 import { styles } from "@/lib/styles";
@@ -12,31 +12,28 @@ import { AdminProvider } from "@/context/AdminContext";
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const params = useParams();
+  
   const [isAuthed, setIsAuthed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [folders, setFolders] = useState<FolderType[]>([]);
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-  const [showNewFolder, setShowNewFolder] = useState(false);
-  const [newFolderName, setNewFolderName] = useState("");
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folderId: string } | null>(null);
   const folderMapRef = useRef<Record<string, FolderType>>({});
+  const sidebarRef = useRef<HTMLDivElement>(null);
+
+  // Derive selectedFolderId from URL
+  const selectedFolderId = useMemo(() => {
+    const folderIdArr = params.folderId as string[] | undefined;
+    return folderIdArr?.[folderIdArr.length - 1] || null;
+  }, [params.folderId]);
 
   const view = useMemo(() => {
     if (pathname.includes("recipes")) return "recipes";
-    if (pathname.includes("checklists")) return "checklists";
-    if (pathname.includes("reminders")) return "reminders";
     return "dashboard";
   }, [pathname]);
-
-  const getCurrentType = useCallback(() => {
-    if (view === "recipes") return "recipe";
-    if (view === "checklists") return "checklist";
-    if (view === "reminders") return "reminder";
-    return null;
-  }, [view]);
 
   const theme = useMemo(() => ({
     bg: darkMode ? "#0f172a" : "#ffffff",
@@ -58,6 +55,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     errorBg: darkMode ? "rgba(239, 68, 68, 0.1)" : "#fef2f2",
   }), [darkMode]);
 
+  const fetchFolders = useCallback(async () => {
+    if (view === "dashboard") return;
+    try {
+      const res = await fetch(`/api/folders?type=recipe`);
+      if (res.ok) {
+        const data = await res.json();
+        setFolders(data);
+        const map: Record<string, FolderType> = {};
+        data.forEach((f: FolderType) => { map[f.id] = f; });
+        folderMapRef.current = map;
+      }
+    } catch (error) {
+      console.error("Error fetching folders:", error);
+    }
+  }, [view]);
+
   useEffect(() => {
     const auth = localStorage.getItem("isAdmin");
     if (auth !== "true" && pathname !== "/admin/login") {
@@ -69,34 +82,30 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (savedTheme === "dark") setDarkMode(true);
   }, [router, pathname]);
 
-  const fetchFolders = useCallback(async () => {
-    const type = getCurrentType();
-    if (!type) return;
-    try {
-      const res = await fetch(`/api/folders?type=${type}`);
-      if (res.ok) {
-        const data = await res.json();
-        setFolders(data);
-        const map: Record<string, FolderType> = {};
-        data.forEach((f: FolderType) => { map[f.id] = f; });
-        folderMapRef.current = map;
-      }
-    } catch (error) {
-      console.error("Error fetching folders:", error);
-    }
-  }, [getCurrentType]);
-
   useEffect(() => {
     if (isAuthed && view !== "dashboard") {
       fetchFolders();
     }
   }, [isAuthed, view, fetchFolders]);
 
+  // Context Menu outside click
   useEffect(() => {
     const handleClickOutside = () => setContextMenu(null);
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
+
+  // Hotkeys: Ctrl/Cmd + Shift + N
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        createNewFolder();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedFolderId, view]);
 
   const folderPath = useMemo(() => {
     const path: FolderType[] = [];
@@ -109,6 +118,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
     return path;
   }, [selectedFolderId]);
+
+  const navigateToFolder = useCallback((id: string | null) => {
+    if (!id) {
+      router.push("/admin/recipes");
+      return;
+    }
+    
+    // Build the full path for the URL
+    const path: string[] = [];
+    let current = folderMapRef.current[id];
+    while (current) {
+      path.unshift(current.id);
+      current = current.parentId ? folderMapRef.current[current.parentId] : undefined;
+    }
+    
+    router.push(`/admin/recipes/${path.join("/")}`);
+  }, [router]);
 
   const toggleTheme = () => {
     const newMode = !darkMode;
@@ -125,15 +151,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!confirm("Delete this folder and all its contents?")) return;
     try {
       await fetch(`/api/folders/${id}`, { method: "DELETE" });
-      fetchFolders();
-      if (selectedFolderId === id) setSelectedFolderId(null);
+      const parentId = folderMapRef.current[id]?.parentId || null;
+      await fetchFolders();
+      navigateToFolder(parentId);
     } catch (error) {
       console.error("Error deleting folder:", error);
     }
   };
 
   const updateFolder = async (id: string, newName: string) => {
-    if (!newName.trim()) return;
+    if (!newName.trim()) {
+      setEditingFolderId(null);
+      return;
+    }
     try {
       const res = await fetch(`/api/folders/${id}`, {
         method: "PUT",
@@ -142,11 +172,42 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       });
       if (res.ok) {
         setEditingFolderId(null);
-        fetchFolders();
+        await fetchFolders();
       }
     } catch (error) {
       console.error("Error updating folder:", error);
     }
+  };
+
+  const createNewFolder = async () => {
+    if (view === "dashboard") return;
+    try {
+      const res = await fetch("/api/folders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "New Folder", type: "recipe", parentId: selectedFolderId }),
+      });
+      if (res.ok) {
+        const newFolder = await res.json();
+        await fetchFolders();
+        setEditingFolderId(newFolder.id);
+        setEditingFolderName(newFolder.name);
+        navigateToFolder(newFolder.id);
+      }
+    } catch (error) {
+      console.error("Error creating folder:", error);
+    }
+  };
+
+  // Long press for mobile
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const handleTouchStart = (folderId: string, x: number, y: number) => {
+    longPressTimer.current = setTimeout(() => {
+      setContextMenu({ x, y, folderId });
+    }, 600);
+  };
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
 
   if (pathname === "/admin/login") return <>{children}</>;
@@ -160,84 +221,72 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       folders={folders} 
       setFolders={setFolders} 
       selectedFolderId={selectedFolderId} 
-      setSelectedFolderId={setSelectedFolderId}
+      setSelectedFolderId={navigateToFolder}
     >
       <div style={{ ...styles.sectionContainer, background: theme.bgSecondary, color: theme.text }}>
-        {/* Sidebar */}
         <motion.aside 
           initial={false}
           animate={{ x: sidebarOpen ? 0 : -300 }}
           style={{ ...styles.sidebar, background: theme.cardBg, borderColor: theme.border }}
+          ref={sidebarRef}
         >
-          <div style={{ ...styles.sidebarHeader }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedFolderId(null)} 
-                style={{ ...styles.navIconBtn, color: !selectedFolderId ? theme.primary : theme.textSecondary, background: !selectedFolderId ? `${theme.primary}10` : "transparent" }} 
-                title="Root"
-              >
-                {Icons.folderOpen}
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  if (selectedFolderId && folderMapRef.current[selectedFolderId]?.parentId) {
-                    setSelectedFolderId(folderMapRef.current[selectedFolderId].parentId);
-                  } else {
-                    setSelectedFolderId(null);
-                  }
-                }}
-                style={{ ...styles.navIconBtn, color: theme.textSecondary }}
-                title="Back"
-              >
-                {Icons.back}
-              </motion.button>
-            </div>
+          <div style={{ ...styles.sidebarHeader, justifyContent: "flex-start", gap: 8 }}>
             <motion.button 
-              whileHover={{ scale: 1.05, boxShadow: "0 6px 15px rgba(5, 150, 105, 0.3)" }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setShowNewFolder(true)} 
-              style={styles.addFolderBtn}
+              onClick={() => navigateToFolder(null)} 
+              style={{ ...styles.navIconBtn, color: !selectedFolderId ? theme.primary : theme.textSecondary, background: !selectedFolderId ? `${theme.primary}10` : "transparent" }} 
+              title="Root"
             >
-              {Icons.plus}
+              {Icons.folderOpen}
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => {
+                if (selectedFolderId && folderMapRef.current[selectedFolderId]?.parentId) {
+                  navigateToFolder(folderMapRef.current[selectedFolderId].parentId);
+                } else {
+                  navigateToFolder(null);
+                }
+              }}
+              style={{ ...styles.navIconBtn, color: theme.textSecondary }}
+              title="Back"
+            >
+              {Icons.back}
             </motion.button>
           </div>
 
           <div style={{ padding: "0 16px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
-            {[
-              { id: "recipes", label: "Recipes", icon: Icons.recipes, path: "/admin/recipes" },
-              { id: "checklists", label: "Checklists", icon: Icons.checklist, path: "/admin/checklists" },
-              { id: "reminders", label: "Reminders", icon: Icons.reminders, path: "/admin/reminders" },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setSelectedFolderId(null);
-                  router.push(item.path);
-                }}
-                style={{
-                  ...styles.folderItem,
-                  background: view === item.id ? `${theme.primary}15` : "transparent",
-                  color: view === item.id ? theme.primary : theme.textSecondary,
-                  fontWeight: view === item.id ? 700 : 500,
-                }}
-              >
-                <span style={{ fontSize: 20, display: "flex", opacity: view === item.id ? 1 : 0.7 }}>{item.icon}</span>
-                <span>{item.label}</span>
-                {view === item.id && (
-                  <motion.div 
-                    layoutId="activeNav"
-                    style={{ marginLeft: "auto", width: 4, height: 16, borderRadius: 2, background: theme.primary }}
-                  />
-                )}
-              </button>
-            ))}
+            <button
+              onClick={() => {
+                navigateToFolder(null);
+                router.push("/admin/recipes");
+              }}
+              style={{
+                ...styles.folderItem,
+                background: view === "recipes" ? `${theme.primary}15` : "transparent",
+                color: view === "recipes" ? theme.primary : theme.textSecondary,
+                fontWeight: view === "recipes" ? 700 : 500,
+              }}
+            >
+              <span style={{ fontSize: 20, display: "flex", opacity: view === "recipes" ? 1 : 0.7 }}>{Icons.recipes}</span>
+              <span>Recipes</span>
+              {view === "recipes" && (
+                <motion.div layoutId="activeNav" style={{ marginLeft: "auto", width: 4, height: 16, borderRadius: 2, background: theme.primary }} />
+              )}
+            </button>
           </div>
 
-          <div style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}>
+          <div 
+            style={{ flex: 1, overflowY: "auto", padding: "0 16px" }}
+            onContextMenu={(e) => {
+              if (e.target === e.currentTarget) {
+                e.preventDefault();
+                setContextMenu({ x: e.clientX, y: e.clientY, folderId: "" }); // Empty ID means background
+              }
+            }}
+          >
             <div style={{ fontSize: 11, fontWeight: 700, color: theme.textMuted, padding: "16px 12px 12px", textTransform: "uppercase", letterSpacing: "0.1em" }}>Folders</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               {folders
@@ -260,16 +309,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   ) : (
                     <motion.button
                       whileHover={{ x: 4, background: theme.bgSecondary }}
-                      onClick={() => setSelectedFolderId(folder.id)}
+                      onClick={() => navigateToFolder(folder.id)}
                       onContextMenu={(e) => {
                         e.preventDefault();
                         setContextMenu({ x: e.clientX, y: e.clientY, folderId: folder.id });
                       }}
-                      style={{ 
-                        ...styles.folderItem, 
-                        background: "transparent", 
-                        color: theme.text,
-                      }}
+                      onTouchStart={(e) => handleTouchStart(folder.id, e.touches[0].clientX, e.touches[0].clientY)}
+                      onTouchEnd={handleTouchEnd}
+                      style={{ ...styles.folderItem, background: "transparent", color: theme.text }}
                     >
                       <span style={{ color: theme.primary, opacity: 0.8 }}>{Icons.folder}</span>
                       <span className="truncate">{folder.name}</span>
@@ -286,73 +333,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
 
           <div style={{ padding: 24, borderTop: `1px solid ${theme.border}` }}>
-            <FolderPath folderPath={folderPath} onFolderClick={setSelectedFolderId} />
-            {selectedFolderId && (
-              <motion.button 
-                whileHover={{ background: theme.errorBg }}
-                onClick={() => deleteFolder(selectedFolderId)} 
-                style={{ ...styles.deleteFolderBtn, marginTop: 12, width: "100%" }}
-              >
-                {Icons.trash}
-                <span>Delete current folder</span>
-              </motion.button>
-            )}
+            <FolderPath folderPath={folderPath} onFolderClick={navigateToFolder} />
           </div>
-
-          <AnimatePresence>
-            {showNewFolder && (
-              <motion.div 
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 10 }}
-                style={{ 
-                  position: "absolute", 
-                  bottom: 100, 
-                  left: 16, 
-                  right: 16, 
-                  background: theme.cardBg, 
-                  padding: 20, 
-                  borderRadius: 24, 
-                  boxShadow: "0 20px 50px rgba(0,0,0,0.15)",
-                  border: `1px solid ${theme.border}`,
-                  zIndex: 100
-                }}
-              >
-                <h4 style={{ margin: "0 0 12px", fontSize: 14, fontWeight: 700 }}>New Folder</h4>
-                <input
-                  type="text"
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  placeholder="Folder name..."
-                  style={{ ...styles.input, padding: "12px 16px", fontSize: 14, marginBottom: 16 }}
-                  autoFocus
-                />
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={() => setShowNewFolder(false)} style={{ ...styles.backBtn, flex: 1, padding: 10 }}>Cancel</button>
-                  <button 
-                    onClick={() => {
-                      const trimmedName = newFolderName.trim();
-                      if (!trimmedName) return;
-                      const type = getCurrentType();
-                      fetch("/api/folders", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ name: trimmedName, type, parentId: selectedFolderId }),
-                      }).then(res => res.json()).then(data => {
-                        setNewFolderName("");
-                        setShowNewFolder(false);
-                        setSelectedFolderId(data.id);
-                        fetchFolders();
-                      });
-                    }} 
-                    style={{ ...styles.addItemBtn, flex: 1, padding: 10, justifyContent: "center" }}
-                  >
-                    Create
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.aside>
 
         {/* Context Menu */}
@@ -375,42 +357,41 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 padding: 6,
               }}
             >
-              <button
-                onClick={() => {
-                  const folder = folders.find(f => f.id === contextMenu.folderId);
-                  if (folder) {
-                    setEditingFolderId(folder.id);
-                    setEditingFolderName(folder.name);
+              {contextMenu.folderId ? (
+                <>
+                  <button onClick={() => {
+                    const folder = folders.find(f => f.id === contextMenu.folderId);
+                    if (folder) {
+                      setEditingFolderId(folder.id);
+                      setEditingFolderName(folder.name);
+                      setContextMenu(null);
+                    }
+                  }} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium">
+                    <span className="text-emerald-600">{Icons.edit}</span>
+                    <span>Rename</span>
+                  </button>
+                  <button onClick={() => {
+                    deleteFolder(contextMenu.folderId);
                     setContextMenu(null);
-                  }
-                }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
-              >
-                <span className="text-emerald-600">{Icons.edit}</span>
-                <span>Rename</span>
-              </button>
-              <button
-                onClick={() => {
-                  deleteFolder(contextMenu.folderId);
-                  setContextMenu(null);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium text-red-600"
-              >
-                <span>{Icons.trash}</span>
-                <span>Delete</span>
-              </button>
+                  }} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium text-red-600">
+                    <span>{Icons.trash}</span>
+                    <span>Delete</span>
+                  </button>
+                </>
+              ) : (
+                <button onClick={() => { createNewFolder(); setContextMenu(null); }} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium">
+                  <span className="text-emerald-600">{Icons.plus}</span>
+                  <span>New Folder</span>
+                </button>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Main Content */}
         <div style={{ ...styles.sectionMain, marginLeft: sidebarOpen ? 300 : 0 }}>
           <header style={{ ...styles.dashHeader, background: theme.cardBg, borderBottom: `1px solid ${theme.border}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-              <button 
-                onClick={() => setSidebarOpen(!sidebarOpen)} 
-                style={{ ...styles.navIconBtn, color: theme.textSecondary, background: theme.bgTertiary }}
-              >
+              <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ ...styles.navIconBtn, color: theme.textSecondary, background: theme.bgTertiary }}>
                 {sidebarOpen ? "«" : "»"}
               </button>
               <button onClick={() => router.push("/admin/dashboard")} style={styles.backBtn}>
@@ -419,23 +400,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </button>
             </div>
             
-            <h1 style={{ ...styles.dashName, fontSize: 24 }}>{view.charAt(0).toUpperCase() + view.slice(1)}</h1>
+            <h1 style={{ ...styles.dashName, fontSize: 24 }}>Recipes</h1>
             
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={toggleTheme} 
-                style={{ ...styles.themeToggle, background: theme.bgSecondary, border: `1px solid ${theme.border}`, color: theme.text }}
-              >
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={toggleTheme} style={{ ...styles.themeToggle, background: theme.bgSecondary, border: `1px solid ${theme.border}`, color: theme.text }}>
                 {darkMode ? Icons.sun : Icons.moon}
               </motion.button>
-              <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleLogout} 
-                style={{ ...styles.navIconBtn, border: `1.5px solid ${theme.error}`, color: theme.error }}
-              >
+              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleLogout} style={{ ...styles.navIconBtn, border: `1.5px solid ${theme.error}`, color: theme.error }}>
                 {Icons.logout}
               </motion.button>
             </div>

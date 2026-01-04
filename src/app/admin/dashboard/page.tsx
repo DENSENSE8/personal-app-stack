@@ -19,22 +19,6 @@ export default function DashboardPage() {
       desc: "Rich block-based recipes for the modern kitchen.", 
       color: "linear-gradient(135deg, #059669, #0d9488)",
       emoji: "👨‍🍳"
-    },
-    { 
-      id: "checklists", 
-      title: "Daily Checklists", 
-      icon: Icons.checklist, 
-      desc: "Stay organized with hierarchical task management.", 
-      color: "linear-gradient(135deg, #2563eb, #3b82f6)",
-      emoji: "✅"
-    },
-    { 
-      id: "reminders", 
-      title: "Smart Reminders", 
-      icon: Icons.reminders, 
-      desc: "Important items and deadlines at a glance.", 
-      color: "linear-gradient(135deg, #7c3aed, #8b5cf6)",
-      emoji: "🔔"
     }
   ];
 
@@ -66,9 +50,8 @@ export default function DashboardPage() {
         </motion.div>
 
         <div style={{ 
-          display: "grid", 
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", 
-          gap: 32,
+          display: "flex", 
+          justifyContent: "center",
           maxWidth: 1100,
           margin: "0 auto"
         }}>
@@ -89,7 +72,9 @@ export default function DashboardPage() {
                 ...styles.dashCard, 
                 background: theme.cardBg, 
                 border: `1px solid ${theme.cardBorder}`,
-                padding: "60px 40px"
+                padding: "60px 40px",
+                maxWidth: 400,
+                width: "100%"
               }}
             >
               <div style={{ 

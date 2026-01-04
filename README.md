@@ -1,16 +1,14 @@
 # Michael Garisek Portfolio
 
-A personal portfolio website with an integrated admin dashboard for managing checklists, recipes, and reminders.
+A personal portfolio website with an integrated admin dashboard for managing recipes.
 
 ## Features
 
 - **Public Portfolio**: Clean, minimal white homepage with portfolio sections
 - **Admin Dashboard**: Protected dashboard with floating navigation
-- **Folder Organization**: Hierarchical folder structure for all items
-- **Checklists**: Create, edit, and manage task lists with completion tracking
-- **Recipes**: Store and organize recipes with prep steps and ingredients
-- **Reminders**: Keep track of important items with due dates
-- **File Uploads**: Attach videos to checklist/reminder items
+- **Folder Organization**: Hierarchical folder structure for recipes
+- **Recipes**: Store and organize recipes with rich content blocks
+- **File Uploads**: Attach images to recipe blocks
 - **Smooth Scrolling**: Lenis smooth scroll throughout the site
 
 ## Tech Stack
@@ -30,9 +28,7 @@ A personal portfolio website with an integrated admin dashboard for managing che
 /                          # Public portfolio homepage
 /login                     # Admin login page
 /dashboard                 # Protected dashboard home
-/dashboard/recipes         # Recipe management with folders
-/dashboard/checklists      # Checklist management with folders
-/dashboard/reminders       # Reminder management with folders
+/admin/recipes             # Recipe management with folders
 ```
 
 ## Getting Started
@@ -73,16 +69,12 @@ src/
 │   ├── page.tsx                    # Public portfolio home
 │   ├── login/page.tsx              # Admin login
 │   ├── dashboard/
-│   │   ├── layout.tsx              # Dashboard layout with FAB
+│   │   ├── layout.tsx              # Dashboard layout
 │   │   ├── page.tsx                # Dashboard home
-│   │   ├── recipes/page.tsx        # Recipe management
-│   │   ├── checklists/page.tsx     # Checklist management
-│   │   └── reminders/page.tsx      # Reminder management
+│   │   └── recipes/                # Recipe management (dynamic)
 │   └── api/
 │       ├── folders/                # Folder CRUD
-│       ├── checklists/             # Checklist CRUD
 │       ├── recipes/                # Recipe CRUD
-│       ├── reminders/              # Reminder CRUD
 │       └── upload/                 # File upload
 ├── components/
 │   ├── dashboard/
@@ -102,13 +94,8 @@ src/
 ## Database Schema
 
 - **User**: Account with email/password
-- **Folder**: Hierarchical organization (recipe/checklist/reminder types)
-- **Checklist**: Task lists with items
-- **ChecklistItem**: Individual tasks with completion tracking
-- **Reminder**: Reminder lists with items and due dates
-- **ReminderItem**: Individual reminders with completion tracking
+- **Folder**: Hierarchical organization for recipes
 - **Recipe**: Recipes with ingredients, tags, and prep steps
-- **RecipeStep**: Prep checklist for recipes
 
 ## License
 
