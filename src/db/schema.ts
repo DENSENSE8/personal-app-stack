@@ -4,7 +4,7 @@ import { pgTable, serial, text, jsonb, timestamp, integer, varchar } from 'drizz
 export const folders = pgTable('folders', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }).notNull(),
-  parentId: integer('parent_id').references(() => folders.id), // Self-referencing for hierarchy
+  parentId: integer('parent_id').references((): any => folders.id), // Self-referencing for hierarchy
   type: varchar('type', { length: 50 }).default('recipe'), // 'recipe', 'project', etc.
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),

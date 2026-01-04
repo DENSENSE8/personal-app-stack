@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, recipes } from "@/lib/db";
-import { eq, ilike, and } from 'drizzle-orm';
+import { eq, ilike, and, desc } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
@@ -8,21 +8,21 @@ export async function GET(req: NextRequest) {
     const folderId = searchParams.get("folderId");
     const search = searchParams.get("search");
 
-    let query = db.select().from(recipes);
+    const baseQuery = db.select().from(recipes);
 
-    // Apply filters
+    let result;
     if (folderId && search) {
-      query = query.where(and(
+      result = await baseQuery.where(and(
         eq(recipes.folderId, parseInt(folderId)),
         ilike(recipes.title, `%${search}%`)
-      ));
+      )).orderBy(desc(recipes.createdAt));
     } else if (folderId) {
-      query = query.where(eq(recipes.folderId, parseInt(folderId)));
+      result = await baseQuery.where(eq(recipes.folderId, parseInt(folderId))).orderBy(desc(recipes.createdAt));
     } else if (search) {
-      query = query.where(ilike(recipes.title, `%${search}%`));
+      result = await baseQuery.where(ilike(recipes.title, `%${search}%`)).orderBy(desc(recipes.createdAt));
+    } else {
+      result = await baseQuery.orderBy(desc(recipes.createdAt));
     }
-
-    const result = await query.orderBy(recipes.createdAt);
 
     return NextResponse.json(result);
   } catch (error) {
@@ -47,7 +47,11 @@ export async function POST(req: NextRequest) {
       checklists: checklists || [],
       tools: tools || [],
       photos: photos || [],
-    }).returning();
+    }).returning() as any[];
+
+    if (!result || result.length === 0) {
+      return NextResponse.json({ error: "Failed to create recipe" }, { status: 500 });
+    }
 
     return NextResponse.json(result[0], { status: 201 });
   } catch (error) {

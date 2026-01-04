@@ -18,16 +18,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
   const [folders, setFolders] = useState<FolderType[]>([]);
-  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editingFolderId, setEditingFolderId] = useState<number | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folderId: string } | null>(null);
-  const folderMapRef = useRef<Record<string, FolderType>>({});
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; folderId: number } | null>(null);
+  const folderMapRef = useRef<Record<number, FolderType>>({});
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Derive selectedFolderId from URL
   const selectedFolderId = useMemo(() => {
     const folderIdArr = params.folderId as string[] | undefined;
-    return folderIdArr?.[folderIdArr.length - 1] || null;
+    const id = folderIdArr?.[folderIdArr.length - 1] || null;
+    return id ? parseInt(id) : null;
   }, [params.folderId]);
 
   const view = useMemo(() => {
@@ -124,15 +125,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.push("/admin/recipes");
       return;
     }
-    
+
+    // Convert string id to number
+    const folderId = parseInt(id);
+
     // Build the full path for the URL
     const path: string[] = [];
-    let current: FolderType | undefined = folderMapRef.current[id];
+    let current: FolderType | undefined = folderMapRef.current[folderId];
     while (current) {
-      path.unshift(current.id);
+      path.unshift(current.id.toString());
       current = current.parentId ? folderMapRef.current[current.parentId] : undefined;
     }
-    
+
     router.push(`/admin/recipes/${path.join("/")}`);
   }, [router]);
 
@@ -151,7 +155,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (!confirm("Delete this folder and all its contents?")) return;
     try {
       await fetch(`/api/folders/${id}`, { method: "DELETE" });
-      const parentId = folderMapRef.current[id]?.parentId || null;
+      const folderId = parseInt(id);
+      const parentId = folderMapRef.current[folderId]?.parentId?.toString() || null;
       await fetchFolders();
       navigateToFolder(parentId);
     } catch (error) {
@@ -203,7 +208,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const handleTouchStart = (folderId: string, x: number, y: number) => {
     longPressTimer.current = setTimeout(() => {
-      setContextMenu({ x, y, folderId });
+      setContextMenu({ x, y, folderId: parseInt(folderId) });
     }, 600);
   };
   const handleTouchEnd = () => {
@@ -245,7 +250,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               whileTap={{ scale: 0.95 }}
               onClick={() => {
                 if (selectedFolderId && folderMapRef.current[selectedFolderId]?.parentId) {
-                  navigateToFolder(folderMapRef.current[selectedFolderId].parentId);
+                  navigateToFolder(folderMapRef.current[selectedFolderId].parentId!.toString());
                 } else {
                   navigateToFolder(null);
                 }
@@ -283,7 +288,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             onContextMenu={(e) => {
               if (e.target === e.currentTarget) {
                 e.preventDefault();
-                setContextMenu({ x: e.clientX, y: e.clientY, folderId: "" }); // Empty ID means background
+                setContextMenu({ x: e.clientX, y: e.clientY, folderId: 0 }); // 0 means background
               }
             }}
           >
@@ -298,9 +303,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       type="text"
                       value={editingFolderName}
                       onChange={(e) => setEditingFolderName(e.target.value)}
-                      onBlur={() => updateFolder(folder.id, editingFolderName)}
+                      onBlur={() => updateFolder(folder.id.toString(), editingFolderName)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") updateFolder(folder.id, editingFolderName);
+                        if (e.key === "Enter") updateFolder(folder.id.toString(), editingFolderName);
                         if (e.key === "Escape") setEditingFolderId(null);
                       }}
                       autoFocus
@@ -309,12 +314,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   ) : (
                     <motion.button
                       whileHover={{ x: 4, background: theme.bgSecondary }}
-                      onClick={() => navigateToFolder(folder.id)}
+                      onClick={() => navigateToFolder(folder.id.toString())}
                       onContextMenu={(e) => {
                         e.preventDefault();
                         setContextMenu({ x: e.clientX, y: e.clientY, folderId: folder.id });
                       }}
-                      onTouchStart={(e) => handleTouchStart(folder.id, e.touches[0].clientX, e.touches[0].clientY)}
+                      onTouchStart={(e) => handleTouchStart(folder.id.toString(), e.touches[0].clientX, e.touches[0].clientY)}
                       onTouchEnd={handleTouchEnd}
                       style={{ ...styles.folderItem, background: "transparent", color: theme.text }}
                     >
@@ -357,7 +362,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 padding: 6,
               }}
             >
-              {contextMenu.folderId ? (
+              {contextMenu.folderId !== 0 ? (
                 <>
                   <button onClick={() => {
                     const folder = folders.find(f => f.id === contextMenu.folderId);
@@ -371,7 +376,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <span>Rename</span>
                   </button>
                   <button onClick={() => {
-                    deleteFolder(contextMenu.folderId);
+                    deleteFolder(contextMenu.folderId.toString());
                     setContextMenu(null);
                   }} className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-sm font-medium text-red-600">
                     <span>{Icons.trash}</span>

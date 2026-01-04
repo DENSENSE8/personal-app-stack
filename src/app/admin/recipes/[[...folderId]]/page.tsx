@@ -18,7 +18,7 @@ export default function RecipesPage() {
   const [recipes, setRecipes] = useState<RecipeType[]>([]);
   const [showNewRecipe, setShowNewRecipe] = useState(false);
   const [newRecipeTitle, setNewRecipeTitle] = useState("");
-  const [editingRecipeId, setEditingRecipeId] = useState<string | null>(null);
+  const [editingRecipeId, setEditingRecipeId] = useState<number | null>(null);
   const [editingText, setEditingText] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<RecipeType | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -27,8 +27,8 @@ export default function RecipesPage() {
 
   const fetchRecipes = useCallback(async () => {
     try {
-      const url = currentFolderId 
-        ? `/api/recipes?folderId=${currentFolderId}`
+      const url = currentFolderId
+        ? `/api/recipes?folderId=${currentFolderId.toString()}`
         : `/api/recipes`;
       const res = await fetch(url);
       if (res.ok) {
@@ -89,7 +89,7 @@ export default function RecipesPage() {
     }
   };
 
-  const openRecipe = async (recipeId: string) => {
+  const openRecipe = async (recipeId: number) => {
     try {
       const res = await fetch(`/api/recipes/${recipeId}`);
       if (res.ok) {
@@ -323,13 +323,13 @@ export default function RecipesPage() {
             <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} key={recipe.id} style={{ ...styles.itemCard, backgroundColor: theme.cardBg, border: `1px solid ${theme.cardBorder}`, cursor: "pointer", justifySelf: "stretch" } as React.CSSProperties} onClick={() => openRecipe(recipe.id)}>
               <div style={styles.itemHeader}>
                 {editingRecipeId === recipe.id ? (
-                  <input type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)} onClick={(e) => e.stopPropagation()} onBlur={() => updateRecipeTitle(recipe.id, editingText)} onKeyDown={(e) => { if (e.key === "Enter") updateRecipeTitle(recipe.id, editingText); if (e.key === "Escape") setEditingRecipeId(null); }} autoFocus style={{ ...styles.input, margin: 0, fontSize: 18, fontWeight: 600, color: theme.text, background: theme.inputBg, border: `1px solid ${theme.inputBorder}`, padding: "8px 12px" }} />
+                  <input type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)} onClick={(e) => e.stopPropagation()} onBlur={() => updateRecipeTitle(recipe.id.toString(), editingText)} onKeyDown={(e) => { if (e.key === "Enter") updateRecipeTitle(recipe.id.toString(), editingText); if (e.key === "Escape") setEditingRecipeId(null); }} autoFocus style={{ ...styles.input, margin: 0, fontSize: 18, fontWeight: 600, color: theme.text, background: theme.inputBg, border: `1px solid ${theme.inputBorder}`, padding: "8px 12px" }} />
                 ) : (
                   <h3 style={{ ...styles.itemTitle, color: theme.text }}>{recipe.title}</h3>
                 )}
                 <div style={styles.itemActions} onClick={(e) => e.stopPropagation()}>
                   <button onClick={(e) => { e.stopPropagation(); setEditingRecipeId(recipe.id); setEditingText(recipe.title); }} style={{ ...styles.itemActionBtn, background: theme.bgTertiary, color: theme.text }} title="Rename">{Icons.edit}</button>
-                  <button onClick={(e) => { e.stopPropagation(); deleteRecipe(recipe.id); }} style={{ ...styles.itemActionBtn, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">{Icons.trash}</button>
+                  <button onClick={(e) => { e.stopPropagation(); deleteRecipe(recipe.id.toString()); }} style={{ ...styles.itemActionBtn, background: theme.bgTertiary, color: "#ef4444" }} title="Delete">{Icons.trash}</button>
                 </div>
               </div>
               {recipe.description && <p style={{ ...styles.recipeDesc, color: theme.textSecondary }}>{recipe.description}</p>}

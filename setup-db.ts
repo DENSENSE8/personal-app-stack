@@ -3,7 +3,7 @@
 import { config } from 'dotenv';
 import { drizzle } from 'drizzle-orm/neon-http';
 import { neon } from '@neondatabase/serverless';
-import * as schema from '../src/db/schema';
+import * as schema from './src/db/schema';
 
 // Set DATABASE_URL directly (temporarily for setup)
 process.env.DATABASE_URL = "postgresql://neondb_owner:npg_5BSJ6YzQjvaL@ep-old-meadow-ah5ydrzj-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require";

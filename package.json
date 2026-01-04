@@ -10,7 +10,8 @@
     "vercel-build": "next build --webpack",
     "db:generate": "drizzle-kit generate:pg",
     "db:migrate": "drizzle-kit migrate:pg",
-    "db:push": "drizzle-kit push:pg"
+    "db:push": "drizzle-kit push:pg",
+    "db:setup": "tsx setup-db.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",

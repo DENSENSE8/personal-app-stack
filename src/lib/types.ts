@@ -5,8 +5,8 @@ export interface FolderType {
   name: string;
   parentId: number | null;
   type: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
   children?: FolderType[];
 }
 
@@ -79,7 +79,7 @@ export interface RecipeBlockMetadata {
 
 export interface RecipeBlock {
   id: string;
-  recipeId: string;
+  recipeId: number;
   type: RecipeBlockType;
   content: RecipeBlockContent;
   position: number;
@@ -95,6 +95,7 @@ export interface RecipeType {
   checklists: { item: string; checked: boolean }[];
   tools: string[] | { name: string; link?: string }[];
   photos: string[];
+  blocks?: RecipeBlock[]; // Legacy compatibility
   createdAt: string;
   updatedAt: string;
 }

@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, recipeStacks } from "@/lib/db";
-import { eq } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
 
-    let query = db.select().from(recipeStacks);
+    const baseQuery = db.select().from(recipeStacks);
 
+    let result;
     if (type) {
-      query = query.where(eq(recipeStacks.type, type));
+      result = await baseQuery.where(eq(recipeStacks.type, type)).orderBy(desc(recipeStacks.createdAt));
+    } else {
+      result = await baseQuery.orderBy(desc(recipeStacks.createdAt));
     }
-
-    const result = await query.orderBy(recipeStacks.createdAt);
 
     return NextResponse.json(result);
   } catch (error) {
@@ -35,7 +36,11 @@ export async function POST(req: NextRequest) {
       type,
       content,
       description: description || null,
-    }).returning();
+    }).returning() as any[];
+
+    if (!result || result.length === 0) {
+      return NextResponse.json({ error: "Failed to create recipe stack" }, { status: 500 });
+    }
 
     return NextResponse.json(result[0], { status: 201 });
   } catch (error) {

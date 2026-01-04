@@ -1,19 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, folders } from "@/lib/db";
-import { eq } from 'drizzle-orm';
+import { eq, asc } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get("type");
 
-    let query = db.select().from(folders);
+    const query = db.select().from(folders);
 
+    let result;
     if (type) {
-      query = query.where(eq(folders.type, type));
+      result = await query.where(eq(folders.type, type)).orderBy(asc(folders.name));
+    } else {
+      result = await query.orderBy(asc(folders.name));
     }
-
-    const result = await query.orderBy(folders.name);
 
     return NextResponse.json(result);
   } catch (error) {
@@ -34,7 +35,11 @@ export async function POST(req: NextRequest) {
       name,
       type,
       parentId: parentId ? parseInt(parentId) : null,
-    }).returning();
+    }).returning() as any[];
+
+    if (!result || result.length === 0) {
+      return NextResponse.json({ error: "Failed to create folder" }, { status: 500 });
+    }
 
     return NextResponse.json(result[0], { status: 201 });
   } catch (error) {

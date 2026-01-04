@@ -17,15 +17,15 @@ export const FolderPath: React.FC<FolderPathProps> = ({ folderPath, onFolderClic
   // If path is short, show everything
   const items = folderPath;
   const showEllipsis = items.length > 3;
-  const displayedItems = showEllipsis 
-    ? [items[0], { id: "ellipsis", name: "...", parentId: null, type: "recipe", createdAt: "", updatedAt: "" } as FolderType, items[items.length - 1]]
+  const displayedItems = showEllipsis
+    ? [items[0], { id: -1, name: "...", parentId: null, type: "recipe", createdAt: "", updatedAt: "" } as FolderType, items[items.length - 1]]
     : items;
 
   return (
     <nav className="flex items-center gap-1.5 text-[11px] text-gray-400 overflow-hidden whitespace-nowrap py-1 px-2 rounded-lg bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
       {displayedItems.map((f, i) => {
         const isLast = i === displayedItems.length - 1;
-        const isEllipsis = f.id === "ellipsis";
+        const isEllipsis = f.id === -1;
         const isFirst = i === 0;
 
         return (
@@ -35,7 +35,7 @@ export const FolderPath: React.FC<FolderPathProps> = ({ folderPath, onFolderClic
               <span className="px-1 opacity-50 select-none">...</span>
             ) : (
               <button
-                onClick={() => !isLast && onFolderClick(f.id)}
+                onClick={() => !isLast && !isEllipsis && onFolderClick(f.id.toString())}
                 disabled={isLast}
                 className={`
                   flex items-center gap-1 transition-all
