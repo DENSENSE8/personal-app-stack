@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql, generateId } from "@/lib/db";
+import { db, recipes } from "@/lib/db";
+import { eq, ilike, and } from 'drizzle-orm';
 
 export async function GET(req: NextRequest) {
   try {
@@ -7,46 +8,23 @@ export async function GET(req: NextRequest) {
     const folderId = searchParams.get("folderId");
     const search = searchParams.get("search");
 
-    let recipes;
-    
+    let query = db.select().from(recipes);
+
+    // Apply filters
     if (folderId && search) {
-      recipes = await sql`
-        SELECT * FROM "Recipe"
-        WHERE "folderId" = ${folderId} AND title ILIKE ${`%${search}%`}
-        ORDER BY "createdAt" DESC
-      `;
+      query = query.where(and(
+        eq(recipes.folderId, parseInt(folderId)),
+        ilike(recipes.title, `%${search}%`)
+      ));
     } else if (folderId) {
-      recipes = await sql`
-        SELECT * FROM "Recipe"
-        WHERE "folderId" = ${folderId}
-        ORDER BY "createdAt" DESC
-      `;
+      query = query.where(eq(recipes.folderId, parseInt(folderId)));
     } else if (search) {
-      recipes = await sql`
-        SELECT * FROM "Recipe"
-        WHERE title ILIKE ${`%${search}%`}
-        ORDER BY "createdAt" DESC
-      `;
-    } else {
-      recipes = await sql`
-        SELECT * FROM "Recipe"
-        ORDER BY "createdAt" DESC
-      `;
+      query = query.where(ilike(recipes.title, `%${search}%`));
     }
 
-    // Fetch blocks for each recipe
-    const recipesWithBlocks = await Promise.all(
-      recipes.rows.map(async (recipe) => {
-        const blocks = await sql`
-          SELECT * FROM "RecipeBlock"
-          WHERE "recipeId" = ${recipe.id}
-          ORDER BY position ASC
-        `;
-        return { ...recipe, blocks: blocks.rows };
-      })
-    );
+    const result = await query.orderBy(recipes.createdAt);
 
-    return NextResponse.json(recipesWithBlocks);
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Error fetching recipes:", error);
     return NextResponse.json({ error: "Failed to fetch recipes" }, { status: 500 });
@@ -55,31 +33,23 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { title, description, folderId, coverImage, tags, prepTime, cookTime, servings } = await req.json();
+    const { title, description, folderId, instructions, checklists, tools, photos } = await req.json();
 
     if (!title) {
       return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    const id = generateId();
-    const now = new Date().toISOString();
+    const result = await db.insert(recipes).values({
+      title,
+      description: description || null,
+      folderId: folderId ? parseInt(folderId) : null,
+      instructions: instructions || [],
+      checklists: checklists || [],
+      tools: tools || [],
+      photos: photos || [],
+    }).returning();
 
-    const result = await sql`
-      INSERT INTO "Recipe" (
-        id, title, description, "folderId", "coverImage", tags, 
-        "prepTime", "cookTime", servings, "createdAt", "updatedAt"
-      )
-      VALUES (
-        ${id}, ${title}, ${description || null}, ${folderId || null}, 
-        ${coverImage || null}, ${tags || []}, ${prepTime || null}, 
-        ${cookTime || null}, ${servings || null}, ${now}, ${now}
-      )
-      RETURNING *
-    `;
-
-    const recipe = { ...result.rows[0], blocks: [] };
-
-    return NextResponse.json(recipe, { status: 201 });
+    return NextResponse.json(result[0], { status: 201 });
   } catch (error) {
     console.error("Error creating recipe:", error);
     return NextResponse.json({ error: "Failed to create recipe" }, { status: 500 });

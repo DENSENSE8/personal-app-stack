@@ -188,10 +188,10 @@ export default function RecipesPage() {
     return (
       <div style={styles.sectionContent}>
         <div style={{ marginBottom: 32 }}>
-          <button 
+          <button
             onClick={() => { setSelectedRecipe(null); fetchRecipes(); }}
-            style={{ 
-              ...styles.backBtn, 
+            style={{
+              ...styles.backBtn,
               marginBottom: 16,
               background: theme.bgTertiary,
               color: theme.text,
@@ -200,12 +200,12 @@ export default function RecipesPage() {
             {Icons.back}
             <span>Back to Collection</span>
           </button>
-          
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 16 }}>
             <h1 style={{ fontSize: 32, fontWeight: 700, color: theme.text, margin: 0 }}>
               {selectedRecipe.title}
             </h1>
-            <div style={{ display: "flex", gap: 12 }}>
+            <div style={{ display: "flex", gap: 12, flexShrink: 0 }}>
               {isEditMode ? (
                 <>
                   <button onClick={() => setIsEditMode(false)} style={{ ...styles.backBtn, background: theme.bgTertiary, color: theme.text }}>Cancel</button>
@@ -221,7 +221,7 @@ export default function RecipesPage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: "800px", margin: "0 auto" }}>
           {selectedRecipe.blocks?.length === 0 || !selectedRecipe.blocks ? (
             <div style={{ ...styles.emptyState, background: theme.cardBg, borderColor: theme.border }}>
               <span style={styles.emptyIcon}>📝</span>
@@ -237,14 +237,14 @@ export default function RecipesPage() {
             selectedRecipe.blocks.map((block, index) => (
               <div key={block.id} style={{ position: "relative" }}>
                 {isEditMode && (
-                  <div style={{ display: "flex", gap: 8, marginBottom: 8, opacity: 0.6 }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 8, opacity: 0.6, justifyContent: "center" }}>
                     <button onClick={() => index > 0 && moveBlock(index, index - 1)} disabled={index === 0} style={{ padding: "4px 8px", background: theme.bgTertiary, border: "none", borderRadius: 4, color: theme.text, fontSize: 12 }}>↑</button>
                     <button onClick={() => index < (selectedRecipe.blocks?.length || 0) - 1 && moveBlock(index, index + 1)} disabled={index === (selectedRecipe.blocks?.length || 0) - 1} style={{ padding: "4px 8px", background: theme.bgTertiary, border: "none", borderRadius: 4, color: theme.text, fontSize: 12 }}>↓</button>
                     <button onClick={() => deleteBlock(block.id)} style={{ padding: "4px 8px", background: theme.errorBg, border: "none", borderRadius: 4, color: theme.error, fontSize: 12 }}>{Icons.trash}</button>
                     <button onClick={() => { setInsertPosition(index + 1); setShowBlockMenu(true); }} style={{ padding: "4px 8px", background: theme.bgTertiary, border: "none", borderRadius: 4, color: theme.text, fontSize: 12, marginLeft: "auto" }}>{Icons.plus} Insert Below</button>
                   </div>
                 )}
-                <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 12, padding: 20 }}>
+                <div style={{ background: theme.cardBg, border: `1px solid ${theme.cardBorder}`, borderRadius: 12, padding: 24 }}>
                   {renderBlock(block, isEditMode)}
                 </div>
               </div>
@@ -314,13 +314,13 @@ export default function RecipesPage() {
 
       <div style={styles.itemsList}>
         {recipes.length === 0 ? (
-          <div style={{ ...styles.emptyState, background: theme.cardBg, borderColor: theme.border }}>
+          <div style={{ ...styles.emptyState, background: theme.cardBg, borderColor: theme.border, gridColumn: "1 / -1", justifySelf: "center", maxWidth: "400px" }}>
             <span style={styles.emptyIcon}>📁</span>
             <p style={{ color: theme.textSecondary }}>No recipes yet. Create your first one!</p>
           </div>
         ) : (
           recipes.map((recipe) => (
-            <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} key={recipe.id} style={{ ...styles.itemCard, backgroundColor: theme.cardBg, border: `1px solid ${theme.cardBorder}`, cursor: "pointer" } as React.CSSProperties} onClick={() => openRecipe(recipe.id)}>
+            <motion.div layout initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} key={recipe.id} style={{ ...styles.itemCard, backgroundColor: theme.cardBg, border: `1px solid ${theme.cardBorder}`, cursor: "pointer", justifySelf: "stretch" } as React.CSSProperties} onClick={() => openRecipe(recipe.id)}>
               <div style={styles.itemHeader}>
                 {editingRecipeId === recipe.id ? (
                   <input type="text" value={editingText} onChange={(e) => setEditingText(e.target.value)} onClick={(e) => e.stopPropagation()} onBlur={() => updateRecipeTitle(recipe.id, editingText)} onKeyDown={(e) => { if (e.key === "Enter") updateRecipeTitle(recipe.id, editingText); if (e.key === "Escape") setEditingRecipeId(null); }} autoFocus style={{ ...styles.input, margin: 0, fontSize: 18, fontWeight: 600, color: theme.text, background: theme.inputBg, border: `1px solid ${theme.inputBorder}`, padding: "8px 12px" }} />
@@ -341,11 +341,11 @@ export default function RecipesPage() {
       <AnimatePresence>
         {showNewRecipe && (
           <div style={styles.modalOverlay}>
-            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} style={{ ...styles.modal, backgroundColor: theme.cardBg } as React.CSSProperties}>
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} style={{ ...styles.modal, backgroundColor: theme.cardBg, border: `1px solid ${theme.border}` } as React.CSSProperties}>
               <h2 style={{ ...styles.modalTitle, color: theme.text }}>New Recipe</h2>
               <input type="text" value={newRecipeTitle} onChange={(e) => setNewRecipeTitle(e.target.value)} placeholder="Enter title..." style={{ ...styles.modalInput, background: theme.inputBg, border: `2px solid ${theme.inputBorder}`, color: theme.text }} autoFocus />
               <div style={styles.modalActions}>
-                <button onClick={() => setShowNewRecipe(false)} style={{ ...styles.modalCancelBtn, background: theme.bgTertiary, color: theme.textSecondary }}>Cancel</button>
+                <button onClick={() => setShowNewRecipe(false)} style={{ ...styles.modalCancelBtn, background: theme.bgTertiary, color: theme.textSecondary, border: `1px solid ${theme.border}` }}>Cancel</button>
                 <button onClick={createRecipe} style={styles.modalConfirmBtn}>Create</button>
               </div>
             </motion.div>

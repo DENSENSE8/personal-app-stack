@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sql } from "@/lib/db";
+import { db, folders } from "@/lib/db";
+import { eq } from 'drizzle-orm';
 
 export async function DELETE(
   req: NextRequest,
@@ -7,11 +8,9 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
+    const folderId = parseInt(id);
 
-    await sql`
-      DELETE FROM "Folder"
-      WHERE id = ${id}
-    `;
+    await db.delete(folders).where(eq(folders.id, folderId));
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -26,35 +25,24 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
+    const folderId = parseInt(id);
     const { name, parentId } = await req.json();
 
-    const now = new Date().toISOString();
+    const updateData: any = {};
 
-    // Build update query dynamically
-    const updates: string[] = ['"updatedAt" = $3'];
-    const values: any[] = [id];
-    let paramCount = 2;
+    if (name !== undefined) updateData.name = name;
+    if (parentId !== undefined) updateData.parentId = parentId ? parseInt(parentId) : null;
 
-    if (name !== undefined) {
-      updates.push(`"name" = $${paramCount}`);
-      values.push(name);
-      paramCount++;
+    const result = await db.update(folders)
+      .set(updateData)
+      .where(eq(folders.id, folderId))
+      .returning();
+
+    if (result.length === 0) {
+      return NextResponse.json({ error: "Folder not found" }, { status: 404 });
     }
 
-    if (parentId !== undefined) {
-      updates.push(`"parentId" = $${paramCount}`);
-      values.push(parentId);
-      paramCount++;
-    }
-
-    values.push(now); // updatedAt
-
-    const result = await sql.query(
-      `UPDATE "Folder" SET ${updates.join(', ')} WHERE id = $1 RETURNING *`,
-      values
-    );
-
-    return NextResponse.json(result.rows[0]);
+    return NextResponse.json(result[0]);
   } catch (error) {
     console.error("Error updating folder:", error);
     return NextResponse.json({ error: "Failed to update folder" }, { status: 500 });

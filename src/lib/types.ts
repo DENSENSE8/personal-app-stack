@@ -1,11 +1,22 @@
 export type View = "home" | "login" | "dashboard" | "recipes";
 
 export interface FolderType {
-  id: string;
+  id: number;
   name: string;
-  parentId: string | null;
+  parentId: number | null;
   type: string;
+  createdAt: string;
+  updatedAt: string;
   children?: FolderType[];
+}
+
+export interface RecipeStackType {
+  id: number;
+  name: string;
+  type: string; // 'ingredient', 'step', 'tool', 'checklist'
+  content: any; // JSON content to add to recipe
+  description: string | null;
+  createdAt: string;
 }
 
 // Block types for recipe content editor
@@ -76,6 +87,20 @@ export interface RecipeBlock {
 }
 
 export interface RecipeType {
+  id: number;
+  title: string;
+  description: string | null;
+  folderId: number | null;
+  instructions: string[] | { step: string; timer?: number }[];
+  checklists: { item: string; checked: boolean }[];
+  tools: string[] | { name: string; link?: string }[];
+  photos: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Backward compatibility - keep the old RecipeType structure for existing code
+export interface LegacyRecipeType {
   id: string;
   title: string;
   description: string | null;

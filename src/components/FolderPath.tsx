@@ -23,22 +23,14 @@ export const FolderPath: React.FC<FolderPathProps> = ({ folderPath, onFolderClic
 
   return (
     <nav className="flex items-center gap-1.5 text-[11px] text-gray-400 overflow-hidden whitespace-nowrap py-1 px-2 rounded-lg bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
-      <button
-        onClick={() => onFolderClick(null)}
-        className="hover:text-emerald-600 transition-colors flex items-center gap-1"
-        title="Root"
-      >
-        <span className="scale-75 opacity-70">{Icons.folderOpen}</span>
-        <span className="font-medium">Root</span>
-      </button>
-
       {displayedItems.map((f, i) => {
         const isLast = i === displayedItems.length - 1;
         const isEllipsis = f.id === "ellipsis";
+        const isFirst = i === 0;
 
         return (
           <React.Fragment key={`${f.id}-${i}`}>
-            <span className="opacity-30">/</span>
+            {!isFirst && <span className="opacity-30">/</span>}
             {isEllipsis ? (
               <span className="px-1 opacity-50 select-none">...</span>
             ) : (
