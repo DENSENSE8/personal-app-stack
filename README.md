@@ -16,7 +16,7 @@ A personal portfolio website with an integrated admin dashboard for managing che
 ## Tech Stack
 
 - **Framework**: Next.js 16
-- **Database**: Neon PostgreSQL with Prisma ORM
+- **Database**: Neon PostgreSQL with direct SQL (@vercel/postgres)
 - **Cache**: Upstash Redis for autocomplete
 - **Storage**: Vercel Blob for file uploads
 - **Auth**: NextAuth.js v5
@@ -44,17 +44,15 @@ A personal portfolio website with an integrated admin dashboard for managing che
 
 2. Set up environment variables:
    ```env
-   DATABASE_URL=your_neon_postgres_url
+   POSTGRES_URL=your_neon_postgres_url
    UPSTASH_REDIS_REST_URL=your_redis_url
    UPSTASH_REDIS_REST_TOKEN=your_redis_token
    BLOB_READ_WRITE_TOKEN=your_vercel_blob_token
    AUTH_SECRET=your_auth_secret
    ```
 
-3. Push database schema:
-   ```bash
-   npm run db:push
-   ```
+3. Create database tables:
+   Visit `/api/setup-db?secret=create-tables-now` to create all required tables.
 
 4. Run development server:
    ```bash
@@ -96,7 +94,7 @@ src/
 │       └── SmoothScroll.tsx        # Lenis smooth scroll
 ├── lib/
 │   ├── auth.ts                     # NextAuth configuration
-│   ├── db.ts                       # Prisma client
+│   ├── db.ts                       # Direct SQL utilities
 │   └── redis.ts                    # Redis utilities
 └── middleware.ts                   # Route protection
 ```

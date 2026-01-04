@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { sql, generateId } from "@/lib/db";
 
 export async function GET(
   req: NextRequest,
@@ -8,18 +8,25 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const recipe = await prisma.recipe.findUnique({
-      where: { id },
-      include: {
-        blocks: {
-          orderBy: { position: "asc" },
-        },
-      },
-    });
+    const recipeResult = await sql`
+      SELECT * FROM "Recipe"
+      WHERE id = ${id}
+    `;
 
-    if (!recipe) {
+    if (recipeResult.rows.length === 0) {
       return NextResponse.json({ error: "Recipe not found" }, { status: 404 });
     }
+
+    const blocksResult = await sql`
+      SELECT * FROM "RecipeBlock"
+      WHERE "recipeId" = ${id}
+      ORDER BY position ASC
+    `;
+
+    const recipe = {
+      ...recipeResult.rows[0],
+      blocks: blocksResult.rows,
+    };
 
     return NextResponse.json(recipe);
   } catch (error) {
@@ -36,9 +43,10 @@ export async function DELETE(
     const { id } = await params;
 
     // Delete recipe (blocks will cascade delete automatically)
-    await prisma.recipe.delete({
-      where: { id },
-    });
+    await sql`
+      DELETE FROM "Recipe"
+      WHERE id = ${id}
+    `;
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -55,46 +63,99 @@ export async function PUT(
     const { id } = await params;
     const { title, description, folderId, coverImage, tags, prepTime, cookTime, servings, blocks } = await req.json();
 
+    const now = new Date().toISOString();
+
     // If blocks are provided, handle them separately
     if (blocks !== undefined) {
       // Delete all existing blocks
-      await prisma.recipeBlock.deleteMany({
-        where: { recipeId: id },
-      });
+      await sql`
+        DELETE FROM "RecipeBlock"
+        WHERE "recipeId" = ${id}
+      `;
 
       // Create new blocks
       if (blocks.length > 0) {
-        await prisma.recipeBlock.createMany({
-          data: blocks.map((block: any) => ({
-            id: block.id.startsWith('temp-') ? undefined : block.id,
-            recipeId: id,
-            type: block.type,
-            content: block.content,
-            position: block.position,
-            metadata: block.metadata || {},
-          })),
-        });
+        for (const block of blocks) {
+          const blockId = block.id.startsWith('temp-') ? generateId() : block.id;
+          await sql`
+            INSERT INTO "RecipeBlock" (id, "recipeId", type, content, position, metadata)
+            VALUES (
+              ${blockId}, ${id}, ${block.type}, ${JSON.stringify(block.content)}, 
+              ${block.position}, ${JSON.stringify(block.metadata || {})}
+            )
+          `;
+        }
       }
     }
 
-    const recipe = await prisma.recipe.update({
-      where: { id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(folderId !== undefined && { folderId }),
-        ...(coverImage !== undefined && { coverImage }),
-        ...(tags !== undefined && { tags }),
-        ...(prepTime !== undefined && { prepTime }),
-        ...(cookTime !== undefined && { cookTime }),
-        ...(servings !== undefined && { servings }),
-      },
-      include: {
-        blocks: {
-          orderBy: { position: "asc" },
-        },
-      },
-    });
+    // Build update query dynamically
+    const updates: string[] = ['"updatedAt" = $2'];
+    const values: any[] = [id, now];
+    let paramCount = 3;
+
+    if (title !== undefined) {
+      updates.push(`"title" = $${paramCount}`);
+      values.push(title);
+      paramCount++;
+    }
+
+    if (description !== undefined) {
+      updates.push(`"description" = $${paramCount}`);
+      values.push(description);
+      paramCount++;
+    }
+
+    if (folderId !== undefined) {
+      updates.push(`"folderId" = $${paramCount}`);
+      values.push(folderId);
+      paramCount++;
+    }
+
+    if (coverImage !== undefined) {
+      updates.push(`"coverImage" = $${paramCount}`);
+      values.push(coverImage);
+      paramCount++;
+    }
+
+    if (tags !== undefined) {
+      updates.push(`"tags" = $${paramCount}`);
+      values.push(tags);
+      paramCount++;
+    }
+
+    if (prepTime !== undefined) {
+      updates.push(`"prepTime" = $${paramCount}`);
+      values.push(prepTime);
+      paramCount++;
+    }
+
+    if (cookTime !== undefined) {
+      updates.push(`"cookTime" = $${paramCount}`);
+      values.push(cookTime);
+      paramCount++;
+    }
+
+    if (servings !== undefined) {
+      updates.push(`"servings" = $${paramCount}`);
+      values.push(servings);
+      paramCount++;
+    }
+
+    const recipeResult = await sql.query(
+      `UPDATE "Recipe" SET ${updates.join(', ')} WHERE id = $1 RETURNING *`,
+      values
+    );
+
+    const blocksResult = await sql`
+      SELECT * FROM "RecipeBlock"
+      WHERE "recipeId" = ${id}
+      ORDER BY position ASC
+    `;
+
+    const recipe = {
+      ...recipeResult.rows[0],
+      blocks: blocksResult.rows,
+    };
 
     return NextResponse.json(recipe);
   } catch (error) {

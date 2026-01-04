@@ -1,71 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { sql } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
-    const { itemId, itemType, newFolderId, newPosition } = await req.json();
+    const { itemId, itemType, newFolderId } = await req.json();
 
     if (!itemId || !itemType) {
       return NextResponse.json({ error: "itemId and itemType are required" }, { status: 400 });
     }
 
+    const now = new Date().toISOString();
     let result;
 
     switch (itemType) {
-      case "checklist":
-        result = await prisma.checklist.update({
-          where: { id: itemId },
-          data: { folderId: newFolderId || null },
-        });
-        break;
-
-      case "reminder":
-        result = await prisma.reminder.update({
-          where: { id: itemId },
-          data: { folderId: newFolderId || null },
-        });
-        break;
-
       case "recipe":
-        result = await prisma.recipe.update({
-          where: { id: itemId },
-          data: { folderId: newFolderId || null },
-        });
-        break;
-
-      case "checklistItem":
-        result = await prisma.checklistItem.update({
-          where: { id: itemId },
-          data: { 
-            ...(newPosition !== undefined && { position: newPosition }),
-          },
-        });
-        break;
-
-      case "reminderItem":
-        result = await prisma.reminderItem.update({
-          where: { id: itemId },
-          data: { 
-            ...(newPosition !== undefined && { position: newPosition }),
-          },
-        });
+        result = await sql`
+          UPDATE "Recipe"
+          SET "folderId" = ${newFolderId || null}, "updatedAt" = ${now}
+          WHERE id = ${itemId}
+          RETURNING *
+        `;
         break;
 
       case "folder":
-        result = await prisma.folder.update({
-          where: { id: itemId },
-          data: { parentId: newFolderId || null },
-        });
+        result = await sql`
+          UPDATE "Folder"
+          SET "parentId" = ${newFolderId || null}, "updatedAt" = ${now}
+          WHERE id = ${itemId}
+          RETURNING *
+        `;
         break;
 
       default:
-        return NextResponse.json({ error: "Invalid item type" }, { status: 400 });
+        return NextResponse.json({ error: "Invalid item type. Only 'recipe' and 'folder' are supported." }, { status: 400 });
     }
 
-    return NextResponse.json(result);
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: "Item not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(result.rows[0]);
   } catch (error) {
     console.error("Error moving item:", error);
     return NextResponse.json({ error: "Failed to move item" }, { status: 500 });
   }
 }
-
