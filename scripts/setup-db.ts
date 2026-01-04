@@ -1,11 +1,15 @@
 #!/usr/bin/env tsx
 
+import { config } from 'dotenv';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import { neon } from '@neondatabase/serverless';
 import * as schema from '../src/db/schema';
 
+// Set DATABASE_URL directly (temporarily for setup)
+process.env.DATABASE_URL = "postgresql://neondb_owner:npg_5BSJ6YzQjvaL@ep-old-meadow-ah5ydrzj-pooler.c-3.us-east-1.aws.neon.tech/neondb?sslmode=require";
+
 // Create the connection to your Neon database
-const sql = neon(process.env.DATABASE_URL!);
+const sql = neon(process.env.DATABASE_URL);
 
 // Create the Drizzle instance
 const db = drizzle(sql, { schema });
@@ -82,77 +86,21 @@ async function setupDatabase() {
 
     console.log('📁 Creating default folders...');
 
-    // Create default folders using Drizzle
-    await db.insert(schema.folders).values([
-      {
-        name: 'Recipes',
-        type: 'recipe',
-        parentId: null,
-      },
-      {
-        name: 'Projects',
-        type: 'project',
-        parentId: null,
-      },
-      {
-        name: 'Reminders',
-        type: 'reminder',
-        parentId: null,
-      },
-    ]);
+    // Create default folders using raw SQL to avoid Drizzle compatibility issues
+    await sql`INSERT INTO folders (name, type, parent_id) VALUES ('Recipes', 'recipe', NULL)`;
+    await sql`INSERT INTO folders (name, type, parent_id) VALUES ('Projects', 'project', NULL)`;
+    await sql`INSERT INTO folders (name, type, parent_id) VALUES ('Reminders', 'reminder', NULL)`;
 
     console.log('🛠️ Creating default recipe stacks...');
 
-    // Create default recipe stacks (for quick content addition)
-    await db.insert(schema.recipeStacks).values([
-      {
-        name: 'Basic Ingredients',
-        type: 'ingredient',
-        content: [
-          { id: 'flour', amount: '2', unit: 'cups', item: 'All-purpose flour', notes: '' },
-          { id: 'sugar', amount: '1', unit: 'cup', item: 'Granulated sugar', notes: '' },
-          { id: 'butter', amount: '1/2', unit: 'cup', item: 'Unsalted butter', notes: 'softened' },
-          { id: 'eggs', amount: '2', unit: '', item: 'Large eggs', notes: '' },
-          { id: 'milk', amount: '1', unit: 'cup', item: 'Whole milk', notes: '' }
-        ],
-        description: 'Basic baking ingredients template',
-      },
-      {
-        name: 'Kitchen Tools',
-        type: 'tool',
-        content: [
-          'Mixing bowls',
-          'Measuring cups and spoons',
-          'Whisk',
-          'Spatula',
-          'Baking sheet'
-        ],
-        description: 'Essential kitchen tools',
-      },
-      {
-        name: 'Preparation Checklist',
-        type: 'checklist',
-        content: [
-          { item: 'Preheat oven to 350°F', checked: false },
-          { item: 'Grease baking pan', checked: false },
-          { item: 'Gather all ingredients', checked: false },
-          { item: 'Measure ingredients accurately', checked: false }
-        ],
-        description: 'Standard preparation checklist',
-      },
-      {
-        name: 'Baking Steps',
-        type: 'step',
-        content: [
-          { step: 'Preheat oven to 350°F (175°C)', timer: null },
-          { step: 'Cream butter and sugar together until light and fluffy', timer: 180 },
-          { step: 'Add eggs one at a time, beating well after each addition', timer: null },
-          { step: 'Gradually add dry ingredients to wet mixture', timer: null },
-          { step: 'Bake for 25-30 minutes or until golden brown', timer: 1500 }
-        ],
-        description: 'Basic baking process steps',
-      },
-    ]);
+    // Create default recipe stacks using raw SQL
+    await sql`INSERT INTO recipe_stacks (name, type, content, description) VALUES ('Basic Ingredients', 'ingredient', '[{"id": "flour", "amount": "2", "unit": "cups", "item": "All-purpose flour", "notes": ""}, {"id": "sugar", "amount": "1", "unit": "cup", "item": "Granulated sugar", "notes": ""}, {"id": "butter", "amount": "1/2", "unit": "cup", "item": "Unsalted butter", "notes": "softened"}, {"id": "eggs", "amount": "2", "unit": "", "item": "Large eggs", "notes": ""}, {"id": "milk", "amount": "1", "unit": "cup", "item": "Whole milk", "notes": ""}]', 'Basic baking ingredients template')`;
+
+    await sql`INSERT INTO recipe_stacks (name, type, content, description) VALUES ('Kitchen Tools', 'tool', '["Mixing bowls", "Measuring cups and spoons", "Whisk", "Spatula", "Baking sheet"]', 'Essential kitchen tools')`;
+
+    await sql`INSERT INTO recipe_stacks (name, type, content, description) VALUES ('Preparation Checklist', 'checklist', '[{"item": "Preheat oven to 350°F", "checked": false}, {"item": "Grease baking pan", "checked": false}, {"item": "Gather all ingredients", "checked": false}, {"item": "Measure ingredients accurately", "checked": false}]', 'Standard preparation checklist')`;
+
+    await sql`INSERT INTO recipe_stacks (name, type, content, description) VALUES ('Baking Steps', 'step', '[{"step": "Preheat oven to 350°F (175°C)", "timer": null}, {"step": "Cream butter and sugar together until light and fluffy", "timer": 180}, {"step": "Add eggs one at a time, beating well after each addition", "timer": null}, {"step": "Gradually add dry ingredients to wet mixture", "timer": null}, {"step": "Bake for 25-30 minutes or until golden brown", "timer": 1500}]', 'Basic baking process steps')`;
 
     console.log('✅ Database setup completed successfully!');
     console.log('📊 Tables created: folders, recipes, recipe_stacks, integrations');
