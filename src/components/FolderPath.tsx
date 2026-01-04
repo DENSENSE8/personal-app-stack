@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React from "react";
+import { motion } from "framer-motion";
 import { FolderType } from "@/lib/types";
-import { styles } from "@/lib/styles";
 import { Icons } from "@/lib/icons";
 
 interface FolderPathProps {
@@ -11,63 +11,53 @@ interface FolderPathProps {
 }
 
 export const FolderPath: React.FC<FolderPathProps> = ({ folderPath, onFolderClick }) => {
-  const [collapsedIndexes, setCollapsedIndexes] = useState<Set<number>>(new Set());
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const checkOverflow = () => {
-      if (!containerRef.current) return;
-      
-      const container = containerRef.current;
-      const isOverflowing = container.scrollWidth > container.clientWidth;
-      
-      if (isOverflowing && folderPath.length > 0) {
-        const newCollapsed = new Set<number>();
-        for (let i = 0; i < folderPath.length - 1; i++) {
-          newCollapsed.add(i);
-        }
-        setCollapsedIndexes(newCollapsed);
-      } else if (!isOverflowing && collapsedIndexes.size > 0) {
-        setCollapsedIndexes(new Set());
-      }
-    };
-
-    checkOverflow();
-    window.addEventListener('resize', checkOverflow);
-    return () => window.removeEventListener('resize', checkOverflow);
-  }, [folderPath, collapsedIndexes.size]);
-
   if (folderPath.length === 0) return null;
 
+  // Show max 3 items: Root, ..., Last item
+  // If path is short, show everything
+  const items = folderPath;
+  const showEllipsis = items.length > 3;
+  const displayedItems = showEllipsis 
+    ? [items[0], { id: "ellipsis", name: "...", parentId: null, type: "recipe", createdAt: "", updatedAt: "" } as FolderType, items[items.length - 1]]
+    : items;
+
   return (
-    <div ref={containerRef} style={styles.pathBar}>
-      {folderPath.map((f, i) => {
-        const isLast = i === folderPath.length - 1;
-        const isCollapsed = collapsedIndexes.has(i);
-        
+    <nav className="flex items-center gap-1.5 text-[11px] text-gray-400 overflow-hidden whitespace-nowrap py-1 px-2 rounded-lg bg-gray-50/50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50">
+      <button
+        onClick={() => onFolderClick(null)}
+        className="hover:text-emerald-600 transition-colors flex items-center gap-1"
+        title="Root"
+      >
+        <span className="scale-75 opacity-70">{Icons.folderOpen}</span>
+        <span className="font-medium">Root</span>
+      </button>
+
+      {displayedItems.map((f, i) => {
+        const isLast = i === displayedItems.length - 1;
+        const isEllipsis = f.id === "ellipsis";
+
         return (
-          <span key={f.id} style={styles.pathItem}>
-            {i > 0 && <span style={{ opacity: 0.5, margin: "0 2px" }}>/</span>}
-            <span 
-              title={f.name}
-              style={{
-                ...isLast ? styles.pathCurrent : { cursor: "pointer" },
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-              }}
-              onClick={() => !isLast && onFolderClick(f.id)}
-            >
-              {isCollapsed ? (
-                <span style={{ fontSize: 14, display: "flex" }}>{Icons.folder}</span>
-              ) : (
-                f.name
-              )}
-            </span>
-          </span>
+          <React.Fragment key={`${f.id}-${i}`}>
+            <span className="opacity-30">/</span>
+            {isEllipsis ? (
+              <span className="px-1 opacity-50 select-none">...</span>
+            ) : (
+              <button
+                onClick={() => !isLast && onFolderClick(f.id)}
+                disabled={isLast}
+                className={`
+                  flex items-center gap-1 transition-all
+                  ${isLast ? "text-emerald-600 font-semibold truncate max-w-[120px]" : "hover:text-emerald-600 cursor-pointer"}
+                `}
+                title={f.name}
+              >
+                {!isLast && <span className="scale-75 opacity-70">{Icons.folder}</span>}
+                <span className="truncate">{f.name}</span>
+              </button>
+            )}
+          </React.Fragment>
         );
       })}
-    </div>
+    </nav>
   );
 };
-
