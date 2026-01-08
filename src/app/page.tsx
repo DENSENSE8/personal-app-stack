@@ -8,82 +8,67 @@ import { Icons } from "@/lib/icons";
 
 export default function HomePage() {
   const router = useRouter();
-  const [darkMode, setDarkMode] = useState(false);
   const { scrollY } = useScroll();
-  
-  const headerOpacity = useTransform(scrollY, [0, 100], [0.5, 0.9]);
-  const headerBlur = useTransform(scrollY, [0, 100], [0, 12]);
 
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") setDarkMode(true);
-  }, []);
-
-  const theme = {
-    bg: darkMode ? "#0f172a" : "#ffffff",
-    text: darkMode ? "#f8fafc" : "#0f172a",
-    textSecondary: darkMode ? "#94a3b8" : "#64748b",
-    cardBg: darkMode ? "rgba(30, 41, 59, 0.7)" : "rgba(255, 255, 255, 0.8)",
-    cardBorder: darkMode ? "rgba(51, 65, 85, 0.5)" : "rgba(226, 232, 240, 0.8)",
-    border: darkMode ? "#334155" : "#e2e8f0",
-  };
-
-  const toggleTheme = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem("theme", newMode ? "dark" : "light");
-  };
+  const headerOpacity = useTransform(scrollY, [0, 100], [0.7, 0.95], {
+    clamp: false
+  });
+  const headerBlur = useTransform(scrollY, [0, 100], [8, 16], {
+    clamp: false
+  });
 
   return (
-    <div style={{ 
-      ...styles.homeContainer, 
-      background: darkMode ? "radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%)" : "radial-gradient(circle at top left, #ffffff 0%, #f0fdf4 100%)",
-      color: theme.text,
+    <div style={{
+      ...styles.homeContainer,
+      background: "radial-gradient(circle at top right, #1e293b 0%, #0f172a 100%)",
+      color: "#f8fafc",
       transition: "background 0.5s ease"
     }}>
       {/* Decorative background elements */}
-      <motion.div 
-        animate={{ 
-          scale: [1, 1.2, 1],
-          opacity: [0.05, 0.1, 0.05],
+      <motion.div
+        animate={{
+          scale: [1, 1.1, 1],
+          opacity: [0.03, 0.06, 0.03],
         }}
-        transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-        style={styles.bgDecor1} 
+        transition={{
+          duration: 20,
+          repeat: Infinity,
+          ease: "easeInOut",
+          times: [0, 0.5, 1]
+        }}
+        style={{
+          ...styles.bgDecor1,
+          willChange: "transform, opacity"
+        }}
       />
-      <motion.div 
-        animate={{ 
-          scale: [1.2, 1, 1.2],
-          opacity: [0.05, 0.08, 0.05],
+      <motion.div
+        animate={{
+          scale: [1.1, 1, 1.1],
+          opacity: [0.03, 0.05, 0.03],
         }}
-        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-        style={styles.bgDecor2} 
+        transition={{
+          duration: 25,
+          repeat: Infinity,
+          ease: "easeInOut",
+          times: [0, 0.5, 1],
+          delay: 2
+        }}
+        style={{
+          ...styles.bgDecor2,
+          willChange: "transform, opacity"
+        }}
       />
 
-      <motion.header 
+      <motion.header
         style={{
           ...styles.homeHeader,
-          background: darkMode ? `rgba(15, 23, 42, ${headerOpacity})` : `rgba(255, 255, 255, ${headerOpacity})`,
+          background: `rgba(15, 23, 42, ${headerOpacity})`,
           backdropFilter: `blur(${headerBlur}px)`,
-          borderBottom: darkMode ? "1px solid rgba(255, 255, 255, 0.05)" : "1px solid rgba(0, 0, 0, 0.05)",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <motion.button 
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={toggleTheme} 
-            style={{ 
-              ...styles.themeToggle, 
-              background: theme.cardBg, 
-              border: `1px solid ${theme.border}`, 
-              color: theme.text,
-              boxShadow: "none"
-            }}
-          >
-            {darkMode ? Icons.sun : Icons.moon}
-          </motion.button>
-          
-          <motion.button 
+          <motion.button
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => router.push("/admin/login")}
@@ -95,44 +80,85 @@ export default function HomePage() {
       </motion.header>
 
       <main style={styles.homeMain}>
-        <motion.div 
-          initial={{ opacity: 0, y: 30 }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          style={styles.heroSection}
+          transition={{
+            duration: 0.6,
+            ease: [0.25, 0.46, 0.45, 0.94]
+          }}
+          style={{
+            ...styles.heroSection,
+            willChange: "transform, opacity"
+          }}
         >
-          <div style={{...styles.heroGlow, background: darkMode ? "radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%)" : styles.heroGlow.background}} />
-          <h1 style={{ ...styles.heroTitle, color: theme.text }}>
-            <motion.span 
-              initial={{ opacity: 0, x: -20 }}
+          <div style={{
+            ...styles.heroGlow,
+            background: "radial-gradient(circle, rgba(16, 185, 129, 0.1) 0%, transparent 70%)"
+          }} />
+          <h1 style={{
+            ...styles.heroTitle,
+            color: "#f8fafc"
+          }}>
+            <motion.span
+              initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.8 }}
-              style={styles.heroTitleAccent}
+              transition={{
+                delay: 0.3,
+                duration: 0.7,
+                ease: [0.25, 0.46, 0.45, 0.94]
+              }}
+              style={{
+                ...styles.heroTitleAccent,
+                willChange: "transform, opacity"
+              }}
             >
               Michael
             </motion.span>
             <br />
             <motion.span
-              initial={{ opacity: 0, x: 20 }}
+              initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, duration: 0.8 }}
+              transition={{
+                delay: 0.5,
+                duration: 0.7,
+                ease: [0.25, 0.46, 0.45, 0.94]
+              }}
+              style={{
+                willChange: "transform, opacity"
+              }}
             >
               Garisek
             </motion.span>
           </h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.6, duration: 0.8 }}
-            style={{...styles.heroSubtitle, color: darkMode ? theme.textSecondary : styles.heroSubtitle.color}}
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              delay: 0.7,
+              duration: 0.5,
+              ease: [0.25, 0.46, 0.45, 0.94]
+            }}
+            style={{
+              ...styles.heroSubtitle,
+              willChange: "transform, opacity"
+            }}
           >
             Creative Developer & Digital Architect
           </motion.p>
-          <motion.div 
-            initial={{ width: 0 }}
-            animate={{ width: 80 }}
-            transition={{ delay: 0.8, duration: 1 }}
-            style={styles.heroDivider} 
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{
+              delay: 0.9,
+              duration: 0.8,
+              ease: [0.25, 0.46, 0.45, 0.94]
+            }}
+            style={{
+              ...styles.heroDivider,
+              willChange: "transform",
+              transformOrigin: "left"
+            }}
           />
         </motion.div>
 
@@ -142,32 +168,46 @@ export default function HomePage() {
             { title: "Journal", icon: "📓", desc: "Thoughts on design, engineering, and the future of creative technology." },
             { title: "Connect", icon: "🤝", desc: "Looking for a partner in building something extraordinary? Let's talk." },
           ].map((section, i) => (
-            <motion.div 
-              key={section.title} 
-              initial={{ opacity: 0, y: 40 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              whileHover={{ 
-                y: -12, 
-                backgroundColor: darkMode ? "rgba(30, 41, 59, 0.9)" : "rgba(255, 255, 255, 1)",
-                boxShadow: darkMode ? "0 25px 50px -12px rgba(0, 0, 0, 0.5)" : "0 25px 50px -12px rgba(0, 0, 0, 0.1)"
+            <motion.div
+              key={section.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{
+                opacity: 1,
+                y: 0,
+                transition: {
+                  delay: i * 0.15,
+                  duration: 0.6,
+                  ease: [0.25, 0.46, 0.45, 0.94]
+                }
               }}
-              transition={{ delay: i * 0.1, duration: 0.5 }}
-              style={{ 
-                ...styles.sectionCard, 
-                backgroundColor: theme.cardBg, 
-                border: `1px solid ${theme.cardBorder}`,
+              viewport={{
+                once: true,
+                margin: "-50px"
+              }}
+              whileHover={{
+                y: -8,
+                backgroundColor: "rgba(30, 41, 59, 0.9)",
+                boxShadow: "0 20px 40px -12px rgba(0, 0, 0, 0.5)",
+                transition: {
+                  duration: 0.2,
+                  ease: "easeOut"
+                }
+              }}
+              style={{
+                ...styles.sectionCard,
+                willChange: "transform, box-shadow, background-color"
               } as React.CSSProperties}
             >
               <span style={styles.sectionIcon}>{section.icon}</span>
-              <h2 style={{ ...styles.sectionTitle, color: theme.text }}>{section.title}</h2>
-              <p style={{ ...styles.sectionDesc, color: theme.textSecondary }}>{section.desc}</p>
-              <span style={{
-                ...styles.comingSoon,
-                background: darkMode ? "rgba(16, 185, 129, 0.1)" : styles.comingSoon.background,
-                color: darkMode ? "#10b981" : styles.comingSoon.color,
-                borderColor: darkMode ? "rgba(16, 185, 129, 0.2)" : styles.comingSoon.borderColor,
-              }}>
+              <h2 style={{
+                ...styles.sectionTitle,
+                color: "#f8fafc"
+              }}>{section.title}</h2>
+              <p style={{
+                ...styles.sectionDesc,
+                color: "#94a3b8"
+              }}>{section.desc}</p>
+              <span style={styles.comingSoon}>
                 Explorer
               </span>
             </motion.div>
@@ -175,7 +215,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      <footer style={{ ...styles.footer, borderTop: `1px solid ${theme.border}`, background: darkMode ? "rgba(15, 23, 42, 0.5)" : "rgba(255, 255, 255, 0.3)" }}>
+      <footer style={{ ...styles.footer, borderTop: "1px solid rgba(51, 65, 85, 0.5)", background: "rgba(15, 23, 42, 0.5)" }}>
         <div style={styles.footerLine} />
         <p style={{ letterSpacing: "0.1em", fontWeight: 500 }}>© {new Date().getFullYear()} Michael Garisek • Crafted in 2026</p>
       </footer>

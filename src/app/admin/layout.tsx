@@ -16,7 +16,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   
   const [isAuthed, setIsAuthed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [folders, setFolders] = useState<FolderType[]>([]);
   const [editingFolderId, setEditingFolderId] = useState<number | null>(null);
   const [editingFolderName, setEditingFolderName] = useState("");
@@ -37,24 +36,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, [pathname]);
 
   const theme = useMemo(() => ({
-    bg: darkMode ? "#0f172a" : "#ffffff",
-    bgSecondary: darkMode ? "#1e293b" : "#f8fafc",
-    bgTertiary: darkMode ? "#334155" : "#f1f5f9",
-    text: darkMode ? "#f1f5f9" : "#0f172a",
-    textSecondary: darkMode ? "#94a3b8" : "#64748b",
-    textMuted: darkMode ? "#64748b" : "#9ca3af",
-    border: darkMode ? "#334155" : "#f1f5f9",
-    borderLight: darkMode ? "#1e293b" : "#f8fafc",
-    cardBg: darkMode ? "#1e293b" : "#ffffff",
-    cardBorder: darkMode ? "#334155" : "#f1f5f9",
-    inputBg: darkMode ? "#1e293b" : "#f8fafc",
-    inputBorder: darkMode ? "#475569" : "#e2e8f0",
+    bg: "#0f172a",
+    bgSecondary: "#1e293b",
+    bgTertiary: "#334155",
+    text: "#f1f5f9",
+    textSecondary: "#94a3b8",
+    textMuted: "#64748b",
+    border: "#334155",
+    borderLight: "#1e293b",
+    cardBg: "#1e293b",
+    cardBorder: "#334155",
+    inputBg: "#1e293b",
+    inputBorder: "#475569",
     primary: "#059669",
     primaryLight: "#10b981",
     primaryGradient: "linear-gradient(135deg, #059669, #0d9488)",
     error: "#ef4444",
-    errorBg: darkMode ? "rgba(239, 68, 68, 0.1)" : "#fef2f2",
-  }), [darkMode]);
+    errorBg: "rgba(239, 68, 68, 0.1)",
+  }), []);
 
   const fetchFolders = useCallback(async () => {
     if (view === "dashboard") return;
@@ -79,8 +78,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     } else if (auth === "true") {
       setIsAuthed(true);
     }
-    const savedTheme = localStorage.getItem("theme");
-    if (savedTheme === "dark") setDarkMode(true);
   }, [router, pathname]);
 
   useEffect(() => {
@@ -139,12 +136,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     router.push(`/admin/recipes/${path.join("/")}`);
   }, [router]);
-
-  const toggleTheme = () => {
-    const newMode = !darkMode;
-    setDarkMode(newMode);
-    localStorage.setItem("theme", newMode ? "dark" : "light");
-  };
 
   const handleLogout = () => {
     localStorage.removeItem("isAdmin");
@@ -219,13 +210,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!isAuthed) return null;
 
   return (
-    <AdminProvider 
-      darkMode={darkMode} 
-      setDarkMode={setDarkMode} 
-      theme={theme} 
-      folders={folders} 
-      setFolders={setFolders} 
-      selectedFolderId={selectedFolderId} 
+    <AdminProvider
+      theme={theme}
+      folders={folders}
+      setFolders={setFolders}
+      selectedFolderId={selectedFolderId}
       setSelectedFolderId={navigateToFolder}
     >
       <div style={{ ...styles.sectionContainer, background: theme.bgSecondary, color: theme.text }}>
@@ -408,9 +397,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <h1 style={{ ...styles.dashName, fontSize: 24 }}>Recipes</h1>
             
             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={toggleTheme} style={{ ...styles.themeToggle, background: theme.bgSecondary, border: `1px solid ${theme.border}`, color: theme.text }}>
-                {darkMode ? Icons.sun : Icons.moon}
-              </motion.button>
               <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleLogout} style={{ ...styles.navIconBtn, border: `1.5px solid ${theme.error}`, color: theme.error }}>
                 {Icons.logout}
               </motion.button>

@@ -10,7 +10,7 @@ import { useAdmin } from "@/context/AdminContext";
 // Fixed Icons.back usage
 export default function DashboardPage() {
   const router = useRouter();
-  const { theme, darkMode } = useAdmin();
+  const { theme } = useAdmin();
 
   const categories = [
     { 
@@ -24,13 +24,13 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div style={{ 
-      ...styles.dashContainer, 
-      background: darkMode ? "radial-gradient(circle at bottom right, #1e293b 0%, #0f172a 100%)" : "radial-gradient(circle at top left, #f8fafc 0%, #f1f5f9 100%)", 
+    <div style={{
+      ...styles.dashContainer,
+      background: "radial-gradient(circle at bottom right, #1e293b 0%, #0f172a 100%)",
       minHeight: "100vh",
       transition: "background 0.5s ease"
     }}>
-      <div style={{...styles.dashBgPattern, opacity: darkMode ? 0.05 : 0.03}} />
+      <div style={{...styles.dashBgPattern, opacity: 0.05}} />
       
       <main style={{...styles.dashMain, padding: "100px 32px"}}>
         <motion.div 
@@ -59,10 +59,10 @@ export default function DashboardPage() {
           {categories.map((cat, i) => (
             <motion.button
               key={cat.id}
-              whileHover={{ 
-                y: -12, 
+              whileHover={{
+                y: -12,
                 scale: 1.02,
-                boxShadow: darkMode ? "0 30px 60px -12px rgba(0, 0, 0, 0.5)" : "0 30px 60px -12px rgba(0, 0, 0, 0.1)"
+                boxShadow: "0 30px 60px -12px rgba(0, 0, 0, 0.5)"
               }}
               whileTap={{ scale: 0.98 }}
               initial={{ opacity: 0, y: 30 }}
